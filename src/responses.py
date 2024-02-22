@@ -26,8 +26,12 @@ def handle_response(message, user_message) -> str:
     if p_message == "!roll":
         return str(random.randint(1,6))
     
-    if p_message == "!rolld20": #make this d{any number} using similar method as !complain
-        return str(random.randint(1,20))
+    if p_message.startswith('!rolld')
+        try:
+            num = int(p_message[6:])
+            return str(random.randint(1,num))
+        except Exception as e:
+            print(e)
     
     if p_message == "🌞":
         return "Praise the sun!"
