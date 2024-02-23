@@ -1,6 +1,7 @@
 import random
 import discord
 from discord import Message
+import GetImageLink
 headsortails = ['Heads', 'Tails']
 
 def handle_response(message, user_message) -> str:
@@ -18,7 +19,7 @@ def handle_response(message, user_message) -> str:
         return "`[Help Message Here]`"
     
     if p_message == "!test":
-        return 'working'
+        return GetImageLink.get_ifunny_image()
     
     if p_message == "!flip":
         return headsortails[random.randint(0,1)]
@@ -26,7 +27,7 @@ def handle_response(message, user_message) -> str:
     if p_message == "!roll":
         return str(random.randint(1,6))
     
-    if p_message.startswith('!rolld')
+    if p_message.startswith('!rolld'):
         try:
             num = int(p_message[6:])
             return str(random.randint(1,num))

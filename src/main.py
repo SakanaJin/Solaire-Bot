@@ -37,7 +37,6 @@ async def on_message(message: Message) -> None:
 
     await send_message(message, user_message)
    
-
 def main():
  client.run(token = TOKEN)
 
