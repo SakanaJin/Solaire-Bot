@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import random
+import time
 
 #https://img.ifunny.co/videos/e84b050e5ba0ff3f3f3b8bd0de4b3657d50ab9684f5709924621ce43156394e8_1.mp4
 #https://img.ifunny.co/images/13a1064fbba4acaa9b355421937d85e51debe8c2d58e5bedb4ee739a19740437_1.jpg
@@ -10,18 +11,23 @@ headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/5
 
 def get_ifunny_image()-> str:
     source = requests.get("https://ifunny.co/top-memes/day", headers=headers).text
-    soup = BeautifulSoup(source)
+    soup = BeautifulSoup(source, "html.parser")
+    #print(soup.prettify, "\n")
 
-    Images= soup.find_all('video')
+    #time.sleep(3)
+
+    Images= soup.find_all('img')
     img_links=[]
-    print(Images)
     for image in Images:
         img_links.append(image['src'])
+    
 
     image = img_links[random.randint(0, len(img_links) - 1)]
-    print(Images)
-    print(image)
-    print(img_links.index(image))
+    #image = "https://img.ifunny.co/" + image[5:]
+
+    print(Images, "\n")
+    print(image, "\n")
+    print(img_links.index(image), "\n")
     print(img_links)
     return image
 
@@ -29,46 +35,37 @@ def get_ifunny_image()-> str:
 
 def get_reddit_berserk_image() -> str:
     #source = requests.get("https://www.reddit.com/r/Berserk/", headers = headers).text
-    source = requests.get("https://www.reddit.com/r/Berserk/")
-    soup = BeautifulSoup(source.text, 'html.parser')
+    #source = requests.get("https://www.reddit.com/r/Berserk/", headers=headers)
+    #soup = BeautifulSoup(source.text, 'html.parser')
+    #time.sleep(5) 
     
-    Images = soup.find_all('img')
-    img_links=[]
+    #print(soup)
 
-    for image in Images:
-        img_links.append(image['src'])
+    #Images = soup.select("faceplate-batch article shreddit-post div shreddit-aspect-ratio shreddit-lightbox-listener div img")
+    #img_links=[]
 
-    image = img_links[random.randint(0, len(img_links) - 1)]
-    print(Images)
-    print(image)
-    print(img_links.index(image))
-    print(img_links)
-    return image
+    #for image in Images:
+    #    img_links.append(image['src'])
 
-#get_reddit_berserk_image()
+    #image = img_links[random.randint(0, len(img_links) - 1)]
+    #print(Images, "\n")
+    #print(image, "\n")
+    #print(img_links.index(image), "\n")
+    #print(img_links)
+    #return image
 
-
-def get_meme() -> str:
-    #source = requests.get("https://www.reddit.com/r/Berserk/", headers = headers).text
-    source = requests.get("https://www.memedroid.com/")
+    source = requests.get("https://www.reddit.com/r/Berserk/", headers=headers)
     soup = BeautifulSoup(source.text, 'html.parser')
-    
-    Images = soup.find_all('picture')
-    img_links=[]
 
-    for image in Images:
-        img_links.append(image['source'])
+    domains = soup.find_all("span", class_="domain")
 
-    image = img_links[random.randint(0, len(img_links) - 1)]
-    print(Images)
-    print(image)
-    print(img_links.index(image))
-    print(img_links)
-    return image
+    return "" 
 
 
-def get_top() -> str:
-    source = requests.get("https://www.reddit.com/r/memes/")
+get_reddit_berserk_image()
+
+def get_trauma() -> str: #make !traumatize
+    source = requests.get("https://e621.net/posts?tags=hi_res+", headers = headers)
     soup = BeautifulSoup(source.text, 'html.parser')
 
     Images = soup.find_all('img')
@@ -77,11 +74,10 @@ def get_top() -> str:
     for image in Images:
         img_links.append(image['src'])
 
-    image = img_links[0]
+    image = img_links[5]
 
-    print(Images, "\n")
-    print(image, "\n")
-    print(img_links)
+    #print(Images, "\n")
+    #print(image, "\n")
+    #print(img_links)
     return image
 
-get_top()

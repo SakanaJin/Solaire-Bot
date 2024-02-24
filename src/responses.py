@@ -2,24 +2,58 @@ import random
 import discord
 from discord import Message
 import GetImageLink
+import pandas as pd
 headsortails = ['Heads', 'Tails']
 
 def handle_response(message, user_message) -> str:
+    member = discord.Member = message.author
 
     if user_message.startswith('!complain'):
         user_message = user_message[10:]
-        member = discord.Member = message.author
         return (f"{member.mention} nobody cares about '{user_message}', cry about it.")
     
-    p_message = user_message.lower()
+    p_message = user_message.replace(" ","") #deletes white space
 
-    p_message = p_message.replace(" ","")
+    if p_message.startswith("!gift"):
+        p_message = p_message[5:]
+        points = pd.read_csv("Points.csv")
+
+        for name in points['Users']:
+            if name in p_message:
+                try:
+                    member2 = discord.Member = name
+                except Exception as e:
+                    print(e)
+                num = p_message[(len(name)):]
+                break
+            num = p_message
+
+        if num == p_message:
+            return "Invalid User"
+        
+        if int(num) > int(points[points['Users'].str.contains(str(member))].iat[0,1]):
+            return (f"{member.mention} broke ass")
+        
+        a = points['Users'].str.contains(str(member))
+        b = points['Users'].str.contains(str(member2))
+        points.loc[a, 'Points'] = int(points[points['Users'].str.contains(str(member))].iat[0,1]) - int(num)
+        points.loc[b, 'Points'] = int(points[points['Users'].str.contains(str(member2))].iat[0,1]) + int(num)
+        points.to_csv("Points.csv", index=False)
+
+        return (f"{member.mention} gifted {num} points to {member2}")
+
+    p_message = p_message.lower() #lowercases the whole message
 
     if p_message == "!help":
         return "`[Help Message Here]`"
     
     if p_message == "!test":
-        return GetImageLink.get_ifunny_image()
+        return str(message.author)
+    
+    if p_message == "!points":
+        points = pd.read_csv("Points.csv")
+        userpts = points[points['Users'].str.contains(str(message.author))].iat[0,1]
+        return (f"{member.mention} has {userpts} points.")
     
     if p_message == "!flip":
         return headsortails[random.randint(0,1)]
@@ -36,6 +70,9 @@ def handle_response(message, user_message) -> str:
     
     if p_message == "🌞":
         return "Praise the sun!"
+    
+    if p_message == "!traumatize":
+        return GetImageLink.get_trauma()
     
     if "french" in p_message: #takes lots of power so maybe delete when not funny
         return "Eww French"
