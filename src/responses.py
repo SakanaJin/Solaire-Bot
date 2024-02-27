@@ -1,6 +1,6 @@
 import random
 import discord
-from discord import Message
+from discord import Message, Member
 import GetImageLink
 import pandas as pd
 headsortails = ['Heads', 'Tails']
@@ -55,6 +55,16 @@ def handle_response(message, user_message) -> str:
         userpts = points[points['Users'].str.contains(str(message.author))].iat[0,1]
         return (f"{member.mention} has {userpts} points.")
     
+    if p_message == "!leaderboard":  #needs better formatting
+        points = pd.read_csv("Points.csv")
+        sortedpts = points.sort_values(by='Points', ascending=False)
+        sortedpts['place'] = range(1, 5)
+        sortedpts = sortedpts[['place', 'Users', 'Points']]
+        print(sortedpts)
+        widths = [5, 18, 20]
+        formats = ['{' + f':<{i}' + '}' for i in widths]
+        return sortedpts.to_string(index=False, header=False, col_space= widths, formatters=[(lambda x: fmt.format(x)) for fmt in formats])
+
     if p_message == "!flip":
         return headsortails[random.randint(0,1)]
     
