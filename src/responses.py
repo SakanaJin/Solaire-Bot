@@ -43,9 +43,6 @@ def handle_response(message, user_message) -> str:
         return (f"{member.mention} gifted {num} points to {member2}")
 
     p_message = p_message.lower() #lowercases the whole message
-
-    if p_message == "!help":
-        return "`[Help Message Here]`"
     
     if p_message == "!test":
         return str(message.author)
@@ -87,3 +84,17 @@ def handle_response(message, user_message) -> str:
     if "french" in p_message: #takes lots of power so maybe delete when not funny
         return "Eww French"
     
+    if p_message == "!meme":
+        return GetImageLink.get_meme()
+
+    if p_message == "!berserk":
+        return GetImageLink.get_berserk()
+    
+    if p_message.startswith('!waifu'):
+        if "-n" in p_message:
+            return GetImageLink.waifu_snake(1)
+        else:
+            return GetImageLink.waifu_snake(0)
+        
+    if p_message == '!help':
+        return "`!complain: complaints\n!test: checks if Solaire is working\n!flip: flips a coin\n!roll: rolls a d6\n!rolld{number}: rolls a {number} sided die\n!meme: sends a random meme\n!berserk: sends a random berserk related image\n!waifu(optional)[-n]: throws a waifu [warning -n is dangerous]`"
