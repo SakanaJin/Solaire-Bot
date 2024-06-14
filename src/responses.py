@@ -91,10 +91,24 @@ def handle_response(message, user_message) -> str:
         return GetImageLink.get_berserk()
     
     if p_message.startswith('!waifu'):
+        num = 8
+        status = 0
         if "-n" in p_message:
-            return GetImageLink.waifu_snake(1)
+            status = 1
+            num += 2
+        if "-c" in p_message:
+            return GetImageLink.waifu_snake(status, p_message[num:])
         else:
-            return GetImageLink.waifu_snake(0)
+            return GetImageLink.waifu_snake(status, "waifu")
+        
+    if p_message == '!speak':
+        num = random.randint(1,3)
+        if num == 1:
+            return 'Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father! If only I could be so grossly incandescent!'
+        elif num == 2:
+            return 'Use this, to summon one another as spirits, cross the gaps between the worlds, and engage in jolly co-operation!'
+        else:
+            return ' ... My sun... it\'s setting...'
         
     if p_message == '!help':
-        return "`!complain: complaints\n!test: checks if Solaire is working\n!flip: flips a coin\n!roll: rolls a d6\n!rolld{number}: rolls a {number} sided die\n!meme: sends a random meme\n!berserk: sends a random berserk related image\n!waifu(optional)[-n]: throws a waifu [warning -n is dangerous]`"
+        return "`!speak: solaire says something \n!complain: complaints \n!test: checks if Solaire is working \n!flip: flips a coin \n!roll: rolls a d6 \n!rolld{number}: rolls a {number} sided die \n!meme: sends a random meme \n!berserk: sends a random berserk related image \n!waifu(optional)[-n](optional)[-c]{category}: throws a waifu [warning -n is dangerous][-c specifies category and must be followed by a valid category which are secret] conditions must appear in the order shown \n\nAdding ? before a command will send you a dm of the results`"

@@ -16,16 +16,11 @@ def get_berserk() -> str:
     imgurl = response.json()['url']
     return imgurl
 
-def waifu_snake(number) -> str:
+def waifu_snake(number, category) -> str:
     if number == 1:
         type ='nsfw'
     else:
         type ='sfw'
-    catnum = random.randint(1,100)
-    if catnum <= 20:
-        category ='neko'
-    else:
-        category = 'waifu'
     response = requests.get("https://api.waifu.pics/" + type + '/' + category)
     imgurl =response.json()['url']
     return imgurl
