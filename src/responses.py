@@ -78,9 +78,6 @@ def handle_response(message, user_message) -> str:
     if p_message == "🌞":
         return "Praise the sun!"
     
-    if p_message == "!traumatize":
-        return GetImageLink.get_trauma()
-    
     if "french" in p_message: #takes lots of power so maybe delete when not funny
         return "Eww French"
     
@@ -92,14 +89,10 @@ def handle_response(message, user_message) -> str:
     
     if p_message.startswith('!waifu'):
         num = 8
-        status = 0
-        if "-n" in p_message:
-            status = 1
-            num += 2
         if "-c" in p_message:
-            return GetImageLink.waifu_snake(status, p_message[num:])
+            return GetImageLink.waifu_snake(p_message[num:])
         else:
-            return GetImageLink.waifu_snake(status, "waifu")
+            return GetImageLink.waifu_snake("waifu")
         
     if p_message == '!speak':
         num = random.randint(1,3)

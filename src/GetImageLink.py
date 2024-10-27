@@ -16,29 +16,9 @@ def get_berserk() -> str:
     imgurl = response.json()['url']
     return imgurl
 
-def waifu_snake(number, category) -> str:
-    if number == 1:
-        type ='nsfw'
-    else:
-        type ='sfw'
+def waifu_snake(category) -> str:
+    type ='sfw'
     response = requests.get("https://api.waifu.pics/" + type + '/' + category)
     imgurl =response.json()['url']
     return imgurl
-
-def get_trauma() -> str: #make !traumatize
-    source = requests.get("https://e621.net/posts?tags=hi_res+", headers = headers)
-    soup = BeautifulSoup(source.text, 'html.parser')
-
-    Images = soup.find_all('img')
-    img_links=[]
-
-    for image in Images:
-        img_links.append(image['src'])
-
-    image = img_links[5]
-
-    #print(Images, "\n")
-    #print(image, "\n")
-    #print(img_links)
-    return image
 
