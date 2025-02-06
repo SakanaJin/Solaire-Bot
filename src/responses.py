@@ -16,7 +16,7 @@ def handle_response(message, user_message) -> str:
 
     if p_message.startswith("!gift"):
         p_message = p_message[5:]
-        points = pd.read_csv("csv/Points.csv")
+        points = pd.read_csv("Points.csv")
 
         for name in points['Users']:
             if name in p_message:
@@ -38,7 +38,7 @@ def handle_response(message, user_message) -> str:
         b = points['Users'].str.contains(str(member2))
         points.loc[a, 'Points'] = int(points[points['Users'].str.contains(str(member))].iat[0,1]) - int(num)
         points.loc[b, 'Points'] = int(points[points['Users'].str.contains(str(member2))].iat[0,1]) + int(num)
-        points.to_csv("csv/Points.csv", index=False)
+        points.to_csv("Points.csv", index=False)
 
         return (f"{member.mention} gifted {num} points to {member2}")
 
@@ -48,12 +48,12 @@ def handle_response(message, user_message) -> str:
         return str(message.author)
     
     if p_message == "!points":
-        points = pd.read_csv("csv/Points.csv")
+        points = pd.read_csv("Points.csv")
         userpts = points[points['Users'].str.contains(str(message.author))].iat[0,1]
         return (f"{member.mention} has {userpts} points.")
     
     if p_message == "!leaderboard":  #needs better formatting
-        points = pd.read_csv("csv/Points.csv")
+        points = pd.read_csv("Points.csv")
         sortedpts = points.sort_values(by='Points', ascending=False)
         sortedpts['place'] = range(1, 5)
         sortedpts = sortedpts[['place', 'Users', 'Points']]
