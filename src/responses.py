@@ -16,7 +16,7 @@ def handle_response(message, user_message) -> str:
 
     if p_message.startswith("!gift"):
         p_message = p_message[5:]
-        points = pd.read_csv("Points.csv")
+        points = pd.read_csv("csv/Points.csv")
 
         for name in points['Users']:
             if name in p_message:
@@ -38,7 +38,7 @@ def handle_response(message, user_message) -> str:
         b = points['Users'].str.contains(str(member2))
         points.loc[a, 'Points'] = int(points[points['Users'].str.contains(str(member))].iat[0,1]) - int(num)
         points.loc[b, 'Points'] = int(points[points['Users'].str.contains(str(member2))].iat[0,1]) + int(num)
-        points.to_csv("Points.csv", index=False)
+        points.to_csv("csv/Points.csv", index=False)
 
         return (f"{member.mention} gifted {num} points to {member2}")
 
@@ -48,12 +48,12 @@ def handle_response(message, user_message) -> str:
         return str(message.author)
     
     if p_message == "!points":
-        points = pd.read_csv("Points.csv")
+        points = pd.read_csv("csv/Points.csv")
         userpts = points[points['Users'].str.contains(str(message.author))].iat[0,1]
         return (f"{member.mention} has {userpts} points.")
     
     if p_message == "!leaderboard":  #needs better formatting
-        points = pd.read_csv("Points.csv")
+        points = pd.read_csv("csv/Points.csv")
         sortedpts = points.sort_values(by='Points', ascending=False)
         sortedpts['place'] = range(1, 5)
         sortedpts = sortedpts[['place', 'Users', 'Points']]
@@ -78,6 +78,9 @@ def handle_response(message, user_message) -> str:
     if p_message == "🌞":
         return "Praise the sun!"
     
+    if p_message == "!traumatize":
+        return GetImageLink.get_trauma()
+    
     if "french" in p_message: #takes lots of power so maybe delete when not funny
         return "Eww French"
     
@@ -89,10 +92,14 @@ def handle_response(message, user_message) -> str:
     
     if p_message.startswith('!waifu'):
         num = 8
+        status = 0
+        if "-n" in p_message:
+            status = 1
+            num += 2
         if "-c" in p_message:
-            return GetImageLink.waifu_snake(p_message[num:])
+            return GetImageLink.waifu_snake(status, p_message[num:])
         else:
-            return GetImageLink.waifu_snake("waifu")
+            return GetImageLink.waifu_snake(status, "waifu")
         
     if p_message == '!speak':
         num = random.randint(1,3)
