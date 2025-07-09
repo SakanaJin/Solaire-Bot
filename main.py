@@ -18,7 +18,7 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 headsortails = ["heads", "tails"]
-headers = headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 
 #events----------------------------------------------------------------------------------------------
 
@@ -125,14 +125,11 @@ async def waifu(ctx, *, msg="waifu"):
 @bot.command()
 async def traumatize(ctx):
     """truamatizes nearest viewer"""
-    source = requests.get("https://e621.net/posts?tags=hi_res+", headers = headers)
+    source = requests.get(f"https://e621.net/posts?page={random.randint(1,21)}&tags=hi_res+why", headers = headers)
     soup = BeautifulSoup(source.text, 'html.parser')
     Images = soup.find_all('img')
-    img_links=[]
-    for image in Images:
-        img_links.append(image['src'])
-    image = img_links[5]
-    await ctx.send(image)
+    img_links=[image['src'] for image in Images]
+    await ctx.send(img_links[random.randint(2,65)])
 
 @bot.command()
 async def fricks(ctx):
