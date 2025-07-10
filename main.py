@@ -1,15 +1,17 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import os
 import random
 import requests
 from bs4 import BeautifulSoup
 import json
+import datetime
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 CID = os.getenv('CID')
+GID = os.getenv('GID')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -26,13 +28,13 @@ solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "
 @bot.event
 async def on_ready():
     print(f"{bot.user} has connected to Discord")
-    await send_to_general("Solaire is back basking in the sunlight!")
+    birthday_check.start()
 
 @bot.event
 async def on_member_join(member):
     with open('data.json') as f:
         data = json.load(f)
-    data.append({"name": str(member.name), "fucks": 0})
+    data.append({"name": str(member.name), "birthday": "yyyy-mm-dd", "fucks": 0})
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await send_to_general(f"Welcome to the server {member.name}! Enjoying the sunlight?")
@@ -43,6 +45,21 @@ async def send_to_general(msg):
         await channel.send(msg)
     except Exception as e:
         print(e)
+
+#tasks--------------------------------------------------------------------------------------------------
+
+@tasks.loop(time=datetime.time(hour=15, minute=0)) #1500 utc 1000 cdt
+async def birthday_check():
+    guild = await bot.fetch_guild(GID)
+    general = await bot.fetch_channel(CID)
+    birthdays = []
+    with open('data.json') as f:
+        data = json.load(f)
+    for user in data:
+        if user['birthday'] == str(datetime.date.today().strftime("%m-%d")):
+            birthdays.append(user['name'])
+    for bdayboy in birthdays:
+        await general.send(f"Ahh, @everyone... Today is no ordinary day—it is a day of radiance! A day to honor you, a most noble and unwavering soul. Happy birthday, brave {bdayboy}! With each passing year, your light grows stronger, shining boldly even through the deepest dark. May your journey ahead be filled with jolly cooperation, hearty laughter, and the warmth of the ever-glorious sun! So come—raise your arms high, and let us rejoice! Praise it! Praise the Sun! ☀️")
 
 #on message---------------------------------------------------------------------------------------------
 
@@ -161,9 +178,26 @@ async def quote(ctx):
         await ctx.send(f"\"{quote['quote']}\"\n\t- {quote['author']}")
 
 @bot.command()
+async def registerbday(ctx):
+    """give someone a bday mm-dd"""
+    tokens = ctx.message.content.split(" ")
+    if len(tokens[-1]) != 5:
+        await ctx.send("invalid date format mm-dd")
+        return
+    with open('data.json') as f:
+        data = json.load(f)
+    for user in data:
+        if user['name'] == ctx.message.mentions[0].name:
+            user['birthday'] = tokens[-1]
+            break
+    with open('data.json', 'w') as f:
+        json.dump(data, f, indent=2)
+    await ctx.send('Birthday registered')
+
+@bot.command()
 async def resetdata(ctx):
     """resets data.json"""
-    data = [{"name": str(user), "fucks": 0} for user in ctx.channel.members]
+    data = [{"name": str(user), "birthday": "mm-dd", "fucks": 0} for user in ctx.channel.members]
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await ctx.send("data reset")
@@ -174,6 +208,12 @@ async def resetquotes(ctx):
     with open('quotes.json', 'w') as f:
         json.dump(solaire_quotes, f, indent=2)
     await ctx.send("quotes reset")
+
+# @bot.command()
+# async def say(ctx, *, msg):
+#     """mocks you"""
+#     print(ctx.message.mentions[0].name) #this is how you get a mentioned user from the command message when they're the only user if more than one user is mentioned then the outcome is undefined based on the limitations of the library
+#     await ctx.send(msg)
 
 def main():
     bot.run(TOKEN)
