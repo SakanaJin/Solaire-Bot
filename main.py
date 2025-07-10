@@ -18,53 +18,47 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
+general = None # test this after lunch
+guild = None
 
 headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "If only I could be so grossly incandescent", "author": "Solaire"}, {"quote": "Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father", "author": "Solaire"}, {"quote": "You really are fond of chatting with me, aren't you? If I didn't know better, I'd think you had feelings for me! Ha ha ha", "author": "Solaire"}, {"quote": "I am Solaire of Astora, an adherent of the Lord of Sunlight. Now that I am Undead, I have come to this great land, the birthplace of Lord Gwyn, to seek my very own sun", "author": "Solaire"}, {"quote": "We are amidst strange beings, in a strange land. The flow of time itself is convoluted; with heroes centuries old phasing in and out", "author": "Solaire"}]
 
-#events----------------------------------------------------------------------------------------------
+#events-----------------------------------------------------------------------------------------------
 
 @bot.event
 async def on_ready():
     print(f"{bot.user} has connected to Discord")
+    global general
+    global guild
+    general = await bot.fetch_channel(CID)
+    guild = await bot.fetch_guild(GID)
     birthday_check.start()
 
 @bot.event
 async def on_member_join(member):
     with open('data.json') as f:
         data = json.load(f)
-    data.append({"name": str(member.name), "birthday": "yyyy-mm-dd", "fucks": 0})
+    data.append({"name": str(member.name), "birthday": "mm-dd", "fucks": 0})
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
-    await send_to_general(f"Welcome to the server {member.name}! Enjoying the sunlight?")
-
-async def send_to_general(msg):
-    try:
-        channel = bot.get_channel(CID)
-        await channel.send(msg)
-    except Exception as e:
-        print(e)
+    await general.send(f"Welcome to the server {member.name}! Enjoying the sunlight?")
 
 #tasks--------------------------------------------------------------------------------------------------
 
 @tasks.loop(time=datetime.time(hour=15, minute=0)) #1500 utc 1000 cdt
 async def birthday_check():
-    guild = await bot.fetch_guild(GID)
-    general = await bot.fetch_channel(CID)
-    birthdays = []
     with open('data.json') as f:
         data = json.load(f)
     for user in data:
         if user['birthday'] == str(datetime.date.today().strftime("%m-%d")):
-            birthdays.append(user['name'])
-    for bdayboy in birthdays:
-        await general.send(f"Ahh, @everyone... Today is no ordinary day—it is a day of radiance! A day to honor you, a most noble and unwavering soul. Happy birthday, brave {bdayboy}! With each passing year, your light grows stronger, shining boldly even through the deepest dark. May your journey ahead be filled with jolly cooperation, hearty laughter, and the warmth of the ever-glorious sun! So come—raise your arms high, and let us rejoice! Praise it! Praise the Sun! ☀️")
+            await general.send(f"Ahh, @everyone... Today is no ordinary day—it is a day of radiance! A day to honor you, a most noble and unwavering soul. Happy birthday, brave {user['name']}! With each passing year, your light grows stronger, shining boldly even through the deepest dark. May your journey ahead be filled with jolly cooperation, hearty laughter, and the warmth of the ever-glorious sun! So come—raise your arms high, and let us rejoice! Praise it! Praise the Sun! ☀️")
 
 #on message---------------------------------------------------------------------------------------------
 
 @bot.event
-async def on_message(msg):
+async def on_message(msg):#exclude solaire's messages
     message = msg.content.lower()
     message = message.replace(" ", "")
     if "fuck" in message:
@@ -86,7 +80,7 @@ async def incfuck(author):
 @bot.command()
 async def test(ctx):
     """:3"""
-    await ctx.send("Working")
+    await ctx.send(":3")
 
 @bot.command()
 async def flip(ctx):
