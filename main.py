@@ -18,7 +18,7 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
-general = None # test this after lunch
+general = None
 guild = None
 
 headsortails = ["heads", "tails"]
@@ -58,7 +58,9 @@ async def birthday_check():
 #on message---------------------------------------------------------------------------------------------
 
 @bot.event
-async def on_message(msg):#exclude solaire's messages
+async def on_message(msg):
+    if msg.author == bot.user:
+        return
     message = msg.content.lower()
     message = message.replace(" ", "")
     if "fuck" in message:
@@ -77,10 +79,15 @@ async def incfuck(author):
 
 #commands--------------------------------------------------------------------------------------------------
 
-@bot.command()
+@bot.command(name='test')
 async def test(ctx):
     """:3"""
     await ctx.send(":3")
+
+@bot.command(name='sync')
+async def sync(ctx):
+    """syncs commands"""
+    await bot.tree.sync(guild=discord.Object(id=GID))
 
 @bot.command()
 async def flip(ctx):
@@ -155,6 +162,7 @@ async def fricks(ctx):
     await ctx.send(message)
 
 @bot.command()
+@commands.guild_only()
 async def quote(ctx):
     """creates or says a quote"""
     try:
