@@ -19,6 +19,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
+solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "If only I could be so grossly incandescent", "author": "Solaire"}, {"quote": "Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father", "author": "Solaire"}, {"quote": "You really are fond of chatting with me, aren't you? If I didn't know better, I'd think you had feelings for me! Ha ha ha", "author": "Solaire"}, {"quote": "I am Solaire of Astora, an adherent of the Lord of Sunlight. Now that I am Undead, I have come to this great land, the birthplace of Lord Gwyn, to seek my very own sun", "author": "Solaire"}, {"quote": "We are amidst strange beings, in a strange land. The flow of time itself is convoluted; with heroes centuries old phasing in and out", "author": "Solaire"}]
 
 #events----------------------------------------------------------------------------------------------
 
@@ -140,8 +141,24 @@ async def fricks(ctx):
     data = sorted(data, key=lambda user: user['fucks'], reverse=True)
     for user in data:
         message = message + f"{user['name']}: {user['fucks']}\n"
-    print(message)
     await ctx.send(message)
+
+@bot.command()
+async def quote(ctx):
+    """creates or says a quote"""
+    try:
+        new_quote = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+        with open('quotes.json') as f:
+            quotes = json.load(f)
+        quotes.append({"quote": new_quote.content, "author": str(new_quote.author)})
+        with open('quotes.json', 'w') as f:
+            json.dump(quotes, f, indent=2)
+        await ctx.send(f"Ahh, dear adventurer! '{new_quote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
+    except:
+        with open('quotes.json') as f:
+            quotes = json.load(f)
+        quote = random.choice(quotes)
+        await ctx.send(f"\"{quote['quote']}\"\n\t- {quote['author']}")
 
 @bot.command()
 async def resetdata(ctx):
@@ -150,6 +167,13 @@ async def resetdata(ctx):
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await ctx.send("data reset")
+
+@bot.command()
+async def resetquotes(ctx):
+    """resets quotes"""
+    with open('quotes.json', 'w') as f:
+        json.dump(solaire_quotes, f, indent=2)
+    await ctx.send("quotes reset")
 
 def main():
     bot.run(TOKEN)

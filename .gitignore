@@ -94,5 +94,6 @@ cython_debug/
 # Environment variable file
 .env
 
-# Json data file
+# Json data files
 data.json
+quotes.json
