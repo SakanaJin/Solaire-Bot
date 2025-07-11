@@ -44,7 +44,6 @@ async def on_member_join(member):
     await general.send(f"Welcome to the server {member.name}! Enjoying the sunlight?")
 
 #tasks--------------------------------------------------------------------------------------------------
-
 @tasks.loop(time=datetime.time(hour=15, minute=0)) #1500 utc 1000 cdt
 async def birthday_check():
     with open('data.json') as f:
@@ -93,12 +92,7 @@ async def flip(interaction):
     await interaction.response.send_message(f"{headsortails[random.randint(0,1)]}")
 
 @bot.tree.command(guild=guild)
-async def roll(interaction):
-    """roll d6"""
-    await interaction.response.send_message(f"{random.randint(1,6)}")
-
-@bot.tree.command(guild=guild)
-async def rolld(interaction, sides: str):
+async def rolld(interaction, sides: int = 6):
     """rolls blank sided die"""
     try:
         num = int(sides)
@@ -121,14 +115,10 @@ async def berserk(interaction):
     await interaction.response.send_message(imgurl)
 
 @bot.tree.command(guild=guild)
-async def waifun(interaction, category: str = 'waifu'):
-    response = requests.get(f"https://api.waifu.pics/nsfw/{category}")
-    imgurl = response.json()['url']
-    await interaction.response.send_message(imgurl)
-
-@bot.tree.command(guild=guild)
-async def waifu(interaction, category: str = 'waifu'):
-    response = requests.get(f"https://api.waifu.pics/sfw/{category}")
+async def waifu(interaction, type: str = "sfw", category: str = 'waifu'):
+    if type == 'n':
+        type = "nsfw"
+    response = requests.get(f"https://api.waifu.pics/{type}/{category}")
     imgurl = response.json()['url']
     await interaction.response.send_message(imgurl)
 
@@ -154,20 +144,22 @@ async def fricks(interaction):
 
 @bot.tree.command(guild=guild)
 async def quote(interaction):
-    """creates or says a quote"""
-    try:
-        new_quote = await interaction.channel.fetch_message(interaction.message.reference.message_id)
-        with open('quotes.json') as f:
-            quotes = json.load(f)
-        quotes.append({"quote": new_quote.content, "author": str(new_quote.author)})
-        with open('quotes.json', 'w') as f:
-            json.dump(quotes, f, indent=2)
-        await interaction.response.send_message(f"Ahh, dear adventurer! '{new_quote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
-    except:
-        with open('quotes.json') as f:
-            quotes = json.load(f)
-        quote = random.choice(quotes)
-        await interaction.response.send_message(f"\"{quote['quote']}\"\n\t- {quote['author']}")
+    """says a quote"""
+    with open('quotes.json') as f:
+        quotes = json.load(f)
+    quote = random.choice(quotes)
+    await interaction.response.send_message(f"\"{quote['quote']}\"\n\t- {quote['author']}")
+
+@bot.command()
+async def crote(ctx):
+    """creates quote"""
+    new_quote = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+    with open('quotes.json') as f:
+        quotes = json.load(f)
+    quotes.append({"quote": new_quote.content, "author": str(new_quote.author)})
+    with open('quotes.json', 'w') as f:
+        json.dump(quotes, f, indent=2)
+    await ctx.send(f"Ahh, dear adventurer! '{new_quote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
 
 @bot.tree.command(guild=guild)
 async def registerbday(interaction, birthday: str):
