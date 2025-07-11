@@ -19,7 +19,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 general = None
-guild = None
+guild = discord.Object(id=GID)
 
 headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
@@ -31,9 +31,7 @@ solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "
 async def on_ready():
     print(f"{bot.user} has connected to Discord")
     global general
-    global guild
     general = await bot.fetch_channel(CID)
-    guild = await bot.fetch_guild(GID)
     birthday_check.start()
 
 @bot.event
@@ -46,7 +44,6 @@ async def on_member_join(member):
     await general.send(f"Welcome to the server {member.name}! Enjoying the sunlight?")
 
 #tasks--------------------------------------------------------------------------------------------------
-
 @tasks.loop(time=datetime.time(hour=15, minute=0)) #1500 utc 1000 cdt
 async def birthday_check():
     with open('data.json') as f:
@@ -79,79 +76,63 @@ async def incfuck(author):
 
 #commands--------------------------------------------------------------------------------------------------
 
-@bot.command(name='test')
-async def test(ctx):
+@bot.tree.command(guild=guild)
+async def test(interaction):
     """:3"""
-    await ctx.send(":3")
+    await interaction.response.send_message(":3")
 
-@bot.command(name='sync')
-async def sync(ctx):
+@bot.command()
+async def sync(interaction):
     """syncs commands"""
-    await bot.tree.sync(guild=discord.Object(id=GID))
+    await bot.tree.sync(guild=guild)
 
-@bot.command()
-async def flip(ctx):
+@bot.tree.command(guild=guild)
+async def flip(interaction):
     """flips a coin"""
-    await ctx.send(f"{headsortails[random.randint(0,1)]}")
+    await interaction.response.send_message(f"{headsortails[random.randint(0,1)]}")
 
-@bot.command()
-async def roll(ctx):
-    """roll d6"""
-    await ctx.send(f"{random.randint(1,6)}")
-
-@bot.command()
-async def rolld(ctx, *, msg):
+@bot.tree.command(guild=guild)
+async def rolld(interaction, sides: int = 6):
     """rolls blank sided die"""
     try:
-        num = int(msg)
-        await ctx.send(f"{random.randint(1,num)}")
+        num = int(sides)
+        await interaction.response.send_message(f"{random.randint(1,num)}")
     except Exception as e:
-        await ctx.send(f"{e}")
+        await interaction.response.send_message(f"{e}")
 
-@bot.command()
-async def meme(ctx):
+@bot.tree.command(guild=guild)
+async def meme(interaction):
     """funee"""
     response = requests.get("https://meme-api.com/gimme")
     imgurl = response.json()['url']
-    await ctx.send(imgurl)
+    await interaction.response.send_message(imgurl)
 
-@bot.command()
-async def berserk(ctx):
+@bot.tree.command(guild=guild)
+async def berserk(interaction):
     """berk"""
     response = requests.get("https://meme-api.com/gimme/berserk")
     imgurl = response.json()['url']
-    await ctx.send(imgurl)
+    await interaction.response.send_message(imgurl)
 
-@bot.command()
-async def waifu(ctx, *, msg="waifu"):
-    """throws a waifu with args"""
-    try:
-        msg = msg.lower()
-        if "-n" in msg:
-            type = "nsfw"
-            msg = msg.replace('-n', '')
-            msg = msg.replace(' ', '')
-            if msg == '':
-                msg = "waifu"
-        else:
-            type = "sfw"
-        response = requests.get("https://api.waifu.pics/" + type + '/' + msg)
-        imgurl = response.json()['url']
-        await ctx.send(imgurl)
-    except Exception as e:
-        await ctx.send("Not a valid category")
+@bot.tree.command(guild=guild)
+async def waifu(interaction, type: str = "sfw", category: str = 'waifu'):
+    if type == 'n':
+        type = "nsfw"
+    response = requests.get(f"https://api.waifu.pics/{type}/{category}")
+    imgurl = response.json()['url']
+    await interaction.response.send_message(imgurl)
 
-@bot.command()
-async def traumatize(ctx):
+@bot.tree.command(guild=guild)
+async def traumatize(interaction):
     """truamatizes nearest viewer"""
     source = requests.get(f"https://e621.net/posts?page={random.randint(1,21)}&tags=hi_res+why", headers = headers)
     soup = BeautifulSoup(source.text, 'html.parser')
     Images = soup.find_all('img')
     img_links=[image['src'] for image in Images]
-    await ctx.send(img_links[random.randint(2,65)])
+    await interaction.response.send_message(img_links[random.randint(2,65)])
 
-@bot.command()
-async def fricks(ctx):
+@bot.tree.command(guild=guild)
+async def fricks(interaction):
     """fucks stats"""
     message = ""
     with open('data.json') as f:
@@ -159,42 +140,41 @@ async def fricks(ctx):
     data = sorted(data, key=lambda user: user['fucks'], reverse=True)
     for user in data:
         message = message + f"{user['name']}: {user['fucks']}\n"
-    await ctx.send(message)
+    await interaction.response.send_message(message)
+
+@bot.tree.command(guild=guild)
+async def quote(interaction):
+    """says a quote"""
+    with open('quotes.json') as f:
+        quotes = json.load(f)
+    quote = random.choice(quotes)
+    await interaction.response.send_message(f"\"{quote['quote']}\"\n\t- {quote['author']}")
 
 @bot.command()
-@commands.guild_only()
-async def quote(ctx):
-    """creates or says a quote"""
-    try:
-        new_quote = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-        with open('quotes.json') as f:
-            quotes = json.load(f)
-        quotes.append({"quote": new_quote.content, "author": str(new_quote.author)})
-        with open('quotes.json', 'w') as f:
-            json.dump(quotes, f, indent=2)
-        await ctx.send(f"Ahh, dear adventurer! '{new_quote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
-    except:
-        with open('quotes.json') as f:
-            quotes = json.load(f)
-        quote = random.choice(quotes)
-        await ctx.send(f"\"{quote['quote']}\"\n\t- {quote['author']}")
+async def crote(ctx):
+    """creates quote"""
+    new_quote = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+    with open('quotes.json') as f:
+        quotes = json.load(f)
+    quotes.append({"quote": new_quote.content, "author": str(new_quote.author)})
+    with open('quotes.json', 'w') as f:
+        json.dump(quotes, f, indent=2)
+    await ctx.send(f"Ahh, dear adventurer! '{new_quote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
 
-@bot.command()
-async def registerbday(ctx):
-    """give someone a bday mm-dd"""
-    tokens = ctx.message.content.split(" ")
-    if len(tokens[-1]) != 5:
-        await ctx.send("invalid date format mm-dd")
-        return
+@bot.tree.command(guild=guild)
+async def registerbday(interaction, birthday: str):
+    """give yourself a bday mm-dd"""
+    if len(birthday) != 5:
+        pass
     with open('data.json') as f:
         data = json.load(f)
     for user in data:
-        if user['name'] == ctx.message.mentions[0].name:
-            user['birthday'] = tokens[-1]
+        if user['name'] == interaction.user.name:
+            user['birthday'] = birthday
             break
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
-    await ctx.send('Birthday registered')
+    await interaction.response.send_message('Birthday registered')
 
 @bot.command()
 async def resetdata(ctx):
