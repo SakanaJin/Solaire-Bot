@@ -12,6 +12,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 CID = os.getenv('CID')
 GID = os.getenv('GID')
+ADMIN = os.getenv('ADMIN')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -38,12 +39,13 @@ async def on_ready():
 async def on_member_join(member):
     with open('data.json') as f:
         data = json.load(f)
-    data.append({"name": str(member.name), "birthday": "mm-dd", "fucks": 0})
+    data.append({"id": member.id, "name": str(member.name), "birthday": "mm-dd", "fucks": 0})
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await general.send(f"Welcome to the server {member.name}! Enjoying the sunlight?")
 
 #tasks--------------------------------------------------------------------------------------------------
+
 @tasks.loop(time=datetime.time(hour=15, minute=0)) #1500 utc 1000 cdt
 async def birthday_check():
     with open('data.json') as f:
@@ -176,26 +178,32 @@ async def registerbday(interaction, birthday: str):
         json.dump(data, f, indent=2)
     await interaction.response.send_message('Birthday registered')
 
-@bot.command()
-async def resetdata(ctx):
+@bot.tree.command(guild=guild)
+async def resetdata(interaction):
     """resets data.json"""
-    data = [{"name": str(user), "birthday": "mm-dd", "fucks": 0} for user in ctx.channel.members]
+    if interaction.user.name != ADMIN:
+        await interaction.response.send_message("Admin only")
+        return
+    data = [{"id": user.id, "name": user.name, "birthday": "mm-dd", "fucks": 0} for user in interaction.guild.members]
     with open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
-    await ctx.send("data reset")
+    await interaction.response.send_message("data reset")
 
-@bot.command()
-async def resetquotes(ctx):
+@bot.tree.command(guild=guild)
+async def resetquotes(interaction):
     """resets quotes"""
+    if interaction.user.name != ADMIN:
+        await interaction.response.send_message("Admin only")
+        return
     with open('quotes.json', 'w') as f:
         json.dump(solaire_quotes, f, indent=2)
-    await ctx.send("quotes reset")
+    await interaction.response.send_message("quotes reset")
 
-# @bot.command()
-# async def say(ctx, *, msg):
+# @bot.tree.command(guild=guild)
+# async def say(interaction):
 #     """mocks you"""
-#     print(ctx.message.mentions[0].name) #this is how you get a mentioned user from the command message when they're the only user if more than one user is mentioned then the outcome is undefined based on the limitations of the library
-#     await ctx.send(msg)
+#     print(interaction.user.id)
+#     await interaction.response.send_message(interaction.user.id)
 
 def main():
     bot.run(TOKEN)
