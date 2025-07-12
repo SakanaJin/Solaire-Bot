@@ -97,3 +97,4 @@ cython_debug/
 # Json data files
 data.json
 quotes.json
+user-stocks.json
