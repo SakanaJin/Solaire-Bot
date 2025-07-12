@@ -1,37 +1,30 @@
-[
-  {
-    "name": "Sunforge",
-    "price": 3,
+{
+  "Sunforge": {
+    "price": 3.04,
     "favorlvl": "neutral"
   },
-  {
-    "name": "Manus&Sons",
-    "price": 3,
+  "Manus&Sons": {
+    "price": 3.02,
     "favorlvl": "neutral"
   },
-  {
-    "name": "AbyssalCinema",
-    "price": 3,
+  "AbyssalCinema": {
+    "price": 3.16,
     "favorlvl": "neutral"
   },
-  {
-    "name": "Foxhound",
-    "price": 3,
+  "Foxhound": {
+    "price": 2.98,
     "favorlvl": "neutral"
   },
-  {
-    "name": "Shinra",
-    "price": 3,
+  "Shinra": {
+    "price": 3.2,
     "favorlvl": "neutral"
   },
-  {
-    "name": "Peel co",
-    "price": 3,
+  "Peel co": {
+    "price": 2.89,
     "favorlvl": "neutral"
   },
-  {
-    "name": "Estus soln",
-    "price": 3,
+  "Estus soln": {
+    "price": 3.08,
     "favorlvl": "neutral"
   }
-]
+}
