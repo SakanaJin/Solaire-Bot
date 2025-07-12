@@ -270,7 +270,7 @@ async def portfolio(interaction):
     for investor in investors:
         if investor['name'] == interaction.user.name:
             for stock in investor['stocks']:
-                message = message + f"{stock['name']}: {stock['amount']}"
+                message = message + f"{stock['name']}: {stock['amount']}\n"
             break
     if message == '':
         await interaction.response.send_message("No stocks.... broke mf")
