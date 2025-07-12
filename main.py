@@ -293,7 +293,7 @@ async def buystock(interaction, stockname: str, amount: int = 1):
     with open('data.json') as f:
         data = json.load(f)
     for user in data:
-        if interaction.user.id == user['id']:
+        if interaction.user.name == user['name']:
             if user['sunlight'] < total:
                 await interaction.response.send_message(f"Too expensive.\nPrice: {total}\nYour Sunlight:{user['Sunlight']}")
                 return
@@ -367,7 +367,7 @@ async def sellstock(interaction, stockname: str, amount: str = "1"):
     with open('data.json') as f:
         data = json.load(f)
     for user in data:
-        if user['id'] == interaction.user.id:
+        if user['name'] == interaction.user.name:
             user['sunlight'] = user['sunlight'] + total
             balance = user['sunlight']
             break
