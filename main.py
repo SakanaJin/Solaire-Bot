@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import datetime
+import asyncio
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -26,6 +27,7 @@ headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "If only I could be so grossly incandescent", "author": "Solaire"}, {"quote": "Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father", "author": "Solaire"}, {"quote": "You really are fond of chatting with me, aren't you? If I didn't know better, I'd think you had feelings for me! Ha ha ha", "author": "Solaire"}, {"quote": "I am Solaire of Astora, an adherent of the Lord of Sunlight. Now that I am Undead, I have come to this great land, the birthplace of Lord Gwyn, to seek my very own sun", "author": "Solaire"}, {"quote": "We are amidst strange beings, in a strange land. The flow of time itself is convoluted; with heroes centuries old phasing in and out", "author": "Solaire"}]
 stock_favorlvls = ['hated', 'poor', 'none', 'favored', 'loved']
+lock = asyncio.Lock()
 
 #events-----------------------------------------------------------------------------------------------
 
@@ -39,10 +41,10 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     data.append({"id": member.id, "name": str(member.name), "birthday": "mm-dd", "fucks": 0})
-    with open('data.json', 'w') as f:
+    with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await general.send(f"Welcome to the server {member.name}! Enjoying the sunlight?")
 
@@ -50,7 +52,7 @@ async def on_member_join(member):
 
 @tasks.loop(time=datetime.time(hour=15, minute=0)) #1500 utc 1000 cdt
 async def birthday_check():
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     for user in data:
         if user['birthday'] == str(datetime.date.today().strftime("%m-%d")):
@@ -59,7 +61,7 @@ async def birthday_check():
 @tasks.loop(time=datetime.time(hour=17, minute=0)) #1700 utc 1200 cdt
 async def stock_check():
     message = f"Sunlight stock market report - {datetime.date.today()}\n"
-    with open('sotcks.json') as f:
+    with lock and open('sotcks.json') as f:
         stocks = json.load(f)
     if datetime.date.today().weekday() == 0 or 4: # monday and thursday
         for stock in stocks:
@@ -97,12 +99,12 @@ async def on_message(msg):
     await bot.process_commands(msg)
 
 async def incfuck(author):
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     for user in data:
         if user['name'] == str(author):
             user['fucks'] += 1
-    with open('data.json', 'w') as f:
+    with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
 
 #commands--------------------------------------------------------------------------------------------------
@@ -177,7 +179,7 @@ async def traumatize(interaction):
 async def fricks(interaction):
     """fucks stats"""
     message = ""
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     data = sorted(data, key=lambda user: user['fucks'], reverse=True)
     for user in data:
@@ -187,7 +189,7 @@ async def fricks(interaction):
 @bot.tree.command(guild=guild)
 async def quote(interaction):
     """says a quote"""
-    with open('quotes.json') as f:
+    with lock and open('quotes.json') as f:
         quotes = json.load(f)
     quote = random.choice(quotes)
     await interaction.response.send_message(f"\"{quote['quote']}\"\n\t- {quote['author']}")
@@ -196,10 +198,10 @@ async def quote(interaction):
 async def crote(ctx):
     """creates quote"""
     new_quote = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-    with open('quotes.json') as f:
+    with lock and open('quotes.json') as f:
         quotes = json.load(f)
     quotes.append({"quote": new_quote.content, "author": str(new_quote.author)})
-    with open('quotes.json', 'w') as f:
+    with lock and open('quotes.json', 'w') as f:
         json.dump(quotes, f, indent=2)
     await ctx.send(f"Ahh, dear adventurer! '{new_quote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
 
@@ -208,13 +210,13 @@ async def registerbday(interaction, birthday: str):
     """give yourself a bday mm-dd"""
     if len(birthday) != 5:
         pass
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     for user in data:
         if user['name'] == interaction.user.name:
             user['birthday'] = birthday
             break
-    with open('data.json', 'w') as f:
+    with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await interaction.response.send_message('Birthday registered')
 
@@ -225,7 +227,7 @@ async def resetdata(interaction):
         await interaction.response.send_message("Admin only")
         return
     data = [{"id": user.id, "name": user.name, "birthday": "mm-dd", "fucks": 0} for user in interaction.guild.members]
-    with open('data.json', 'w') as f:
+    with lock and  open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await interaction.response.send_message("data reset")
 
@@ -235,17 +237,17 @@ async def resetquotes(interaction):
     if interaction.user.name != ADMIN:
         await interaction.response.send_message("Admin only")
         return
-    with open('quotes.json', 'w') as f:
+    with lock and open('quotes.json', 'w') as f:
         json.dump(solaire_quotes, f, indent=2)
     await interaction.response.send_message("quotes reset")
 
 @bot.tree.command(guild=guild)
 async def balance(interaction):
     """Shows ya money"""
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     for user in data:
-        if user['id'] == interaction.user.id:
+        if user['name'] == interaction.user.name:
             await interaction.response.send_message(f"Balance: {user['sunlight']} Sunlight")
             break
 
@@ -255,7 +257,7 @@ async def balance(interaction):
 async def showstocks(interaction):
     """shows current stock prices"""
     message = ''
-    with open('stocks.json') as f:
+    with lock and open('stocks.json') as f:
         stocks = json.load(f)
     for stock in stocks:
         message = message + f"{stock['name']}: {stock['price']} Sunlight\n"
@@ -265,7 +267,7 @@ async def showstocks(interaction):
 async def portfolio(interaction):
     """shows your stocks"""
     message = ''
-    with open('user-stocks.json') as f:
+    with lock and open('user-stocks.json') as f:
         investors = json.load(f)
     for investor in investors:
         if investor['name'] == interaction.user.name:
@@ -280,7 +282,7 @@ async def portfolio(interaction):
 async def buystock(interaction, stockname: str, amount: int = 1):
     """buys a stock"""
     price = 0
-    with open('stocks.json') as f:
+    with lock and open('stocks.json') as f:
         stocks = json.load(f)
     for stock in stocks:
         if stock['name'].lower() == stockname.lower():
@@ -290,7 +292,7 @@ async def buystock(interaction, stockname: str, amount: int = 1):
         await interaction.response.send_message("Invalid stock name")
         return
     total = price * amount
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     for user in data:
         if interaction.user.name == user['name']:
@@ -300,9 +302,9 @@ async def buystock(interaction, stockname: str, amount: int = 1):
             user['sunlight'] = user['sunlight'] - total
             remainder = user['sunlight']
             break
-    with open('data.json', 'w') as f:
+    with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
-    with open('user-stocks.json') as f:
+    with lock and open('user-stocks.json') as f:
         investors = json.load(f)
     found = False
     for investor in investors:
@@ -315,7 +317,7 @@ async def buystock(interaction, stockname: str, amount: int = 1):
             if not found:
                 investor['stocks'].append({"name": stockname, "amount": amount})
             break
-    with open('user-stocks.json', 'w') as f:
+    with lock and open('user-stocks.json', 'w') as f:
         json.dump(investors, f, indent=2)
     await interaction.response.send_message(f"Bought {amount} share of {stockname} for {total}, remaining Sunlight: {remainder}")
 
@@ -323,7 +325,7 @@ async def buystock(interaction, stockname: str, amount: int = 1):
 async def sellstock(interaction, stockname: str, amount: str = "1"):
     """sells a stock"""
     price = 0
-    with open('stocks.json') as f:
+    with lock and open('stocks.json') as f:
         stocks = json.load(f)
     for stock in stocks:
         if stock['name'].lower() == stockname.lower():
@@ -332,7 +334,7 @@ async def sellstock(interaction, stockname: str, amount: str = "1"):
     if price == 0:
         await interaction.response.send_message("Invalid stock name")
         return
-    with open('user-stocks.json') as f:
+    with lock and open('user-stocks.json') as f:
         investors = json.load(f)
     found = False
     for investor in investors:
@@ -361,17 +363,17 @@ async def sellstock(interaction, stockname: str, amount: str = "1"):
     if not found:
         await interaction.response.send_message("You don't own any of that stock silly")
         return
-    with open('user-stocks.json', 'w') as f:
+    with lock and open('user-stocks.json', 'w') as f:
         json.dump(investors, f, indent=2)
     total = price * int(amount)
-    with open('data.json') as f:
+    with lock and open('data.json') as f:
         data = json.load(f)
     for user in data:
         if user['name'] == interaction.user.name:
             user['sunlight'] = user['sunlight'] + total
             balance = user['sunlight']
             break
-    with open('data.json', 'w') as f:
+    with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await interaction.response.send_message(f"Sold {amount} shares of {stockname} for {total}, total Sunlight: {balance}")
 
@@ -381,15 +383,15 @@ async def resetstocks(interaction):
     if interaction.user.name != ADMIN:
         await interaction.response.send_message("Admin only")
         return
-    with open('stocks.json') as f:
+    with lock and open('stocks.json') as f:
         stocks = json.load(f)
     for stock in stocks:
         stock['price'] = 3
         stock['favorlvl'] = 'neutral'
-    with open('stocks.json', 'w') as f:
+    with lock and open('stocks.json', 'w') as f:
         json.dump(stocks, f, indent=2)
     investors = [{"name": user.name, "stocks": []} for user in interaction.guild.members]
-    with open('user-stocks.json', 'w') as f:
+    with lock and open('user-stocks.json', 'w') as f:
         json.dump(investors, f, indent=2)
     await interaction.response.send_message("Stock market reset :(")
     
