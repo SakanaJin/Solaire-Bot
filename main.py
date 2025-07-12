@@ -379,7 +379,7 @@ async def resetstocks(interaction):
     with open('stocks.json', 'w') as f:
         json.dump(stocks, f, indent=2)
     investors = [{"name": user.name, "stocks": []} for user in interaction.guild.members]
-    with open('stocks.json', 'w') as f:
+    with open('user-stocks.json', 'w') as f:
         json.dump(investors, f, indent=2)
     await interaction.response.send_message("Stock market reset :(")
     
