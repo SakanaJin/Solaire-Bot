@@ -239,6 +239,16 @@ async def resetquotes(interaction):
         json.dump(solaire_quotes, f, indent=2)
     await interaction.response.send_message("quotes reset")
 
+@bot.tree.command(guild=guild)
+async def balance(interaction):
+    """Shows ya money"""
+    with open('data.json') as f:
+        data = json.load(f)
+    for user in data:
+        if user['id'] == interaction.user.id:
+            await interaction.response.send_message(f"Balance: {user['sunlight']} Sunlight")
+            break
+
 #stock commands------------------------------------------------------------------------------
 
 @bot.tree.command(guild=guild)
