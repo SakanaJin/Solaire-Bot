@@ -3,5 +3,35 @@
     "name": "Sunforge",
     "price": 3,
     "favorlvl": "neutral"
+  },
+  {
+    "name": "Manus&Sons",
+    "price": 3,
+    "favorlvl": "neutral"
+  },
+  {
+    "name": "AbyssalCinema",
+    "price": 3,
+    "favorlvl": "neutral"
+  },
+  {
+    "name": "Foxhound",
+    "price": 3,
+    "favorlvl": "neutral"
+  },
+  {
+    "name": "Shinra",
+    "price": 3,
+    "favorlvl": "neutral"
+  },
+  {
+    "name": "Peel co",
+    "price": 3,
+    "favorlvl": "neutral"
+  },
+  {
+    "name": "Estus soln",
+    "price": 3,
+    "favorlvl": "neutral"
   }
 ]
