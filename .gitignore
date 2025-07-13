@@ -98,3 +98,4 @@ cython_debug/
 data.json
 quotes.json
 user-stocks.json
+user-inventories.json

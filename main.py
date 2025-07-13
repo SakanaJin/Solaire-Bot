@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import os
@@ -8,6 +9,7 @@ from bs4 import BeautifulSoup
 import json
 import datetime
 import asyncio
+import typing
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -27,6 +29,7 @@ headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "If only I could be so grossly incandescent", "author": "Solaire"}, {"quote": "Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father", "author": "Solaire"}, {"quote": "You really are fond of chatting with me, aren't you? If I didn't know better, I'd think you had feelings for me! Ha ha ha", "author": "Solaire"}, {"quote": "I am Solaire of Astora, an adherent of the Lord of Sunlight. Now that I am Undead, I have come to this great land, the birthplace of Lord Gwyn, to seek my very own sun", "author": "Solaire"}, {"quote": "We are amidst strange beings, in a strange land. The flow of time itself is convoluted; with heroes centuries old phasing in and out", "author": "Solaire"}]
 stock_favorlvls = ['hated', 'poor', 'none', 'favored', 'loved']
+rarity_colors = {"Common": 0xf7faf8, "Uncommon": 0x14c744, "Rare": 0x1791e8, "Legendary": 0x7217e8, "Incandescent": 0xfcb632}
 lock = asyncio.Lock()
 
 #events-----------------------------------------------------------------------------------------------
@@ -119,7 +122,7 @@ async def test(interaction):
 @bot.command()
 async def sync(ctx):
     """syncs commands"""
-    if ctx.author.name != ADMIN:
+    if ctx.author.id != ADMIN:
         await ctx.send("Admin only")
         return
     await bot.tree.sync(guild=guild)
@@ -248,7 +251,7 @@ async def balance(interaction):
     """Shows ya money"""
     with lock and open('data.json') as f:
         data = json.load(f)
-    await interaction.response.send_message(f"Balance: {data[str(interaction.user.id)]['sunlight']} Sunlight")
+    await interaction.response.send_message(f"Balance: {data[str(interaction.user.id)]['sunlight']} Sunlight", ephemeral=True)
 
 #stock commands------------------------------------------------------------------------------
 
@@ -260,7 +263,7 @@ async def showstocks(interaction):
         stocks = json.load(f)
     for stock in stocks:
         message = message + f"{stock}: {stocks[stock]['price']} Sunlight\n"
-    await interaction.response.send_message(message)
+    await interaction.response.send_message(message, ephemeral=True)
 
 @bot.tree.command(guild=guild)
 async def portfolio(interaction):
@@ -272,25 +275,35 @@ async def portfolio(interaction):
     for stock in investors[userid]:
         message = message + f"{stock}: {investors[userid][stock]}\n"
     if message == '':
-        await interaction.response.send_message("No stocks.... broke mf")
-    await interaction.response.send_message(message)
+        await interaction.response.send_message("No stocks.... broke mf", ephemeral=True)
+    await interaction.response.send_message(message, ephemeral=True)
+
+async def stockname_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('stocks.json') as f:
+        stocks = json.load(f)
+    choices = []
+    for stock in stocks:
+        if current.lower() in stock.lower():
+            choices.append(app_commands.Choice(name=stock, value=stock))
+    return choices
 
 @bot.tree.command(guild=guild)
+@app_commands.autocomplete(stockname=stockname_autocomplete)
 async def buystock(interaction, stockname: str, amount: int = 1):
     """buys a stock"""
     userid = str(interaction.user.id)
     with lock and open('stocks.json') as f:
         stocks = json.load(f)
     if stockname not in stocks:
-        await interaction.response.send_message("Invalid stock name")
+        await interaction.response.send_message("Invalid stock name", ephemeral=True)
         return
     total = stocks[stockname]['price'] * amount
     with lock and open('data.json') as f:
         data = json.load(f)
     if data[userid]['sunlight'] < total:
-        await interaction.response.send_message(f"Not enought sunlight, total: {total} Sunlight, balance: {data[userid]['sunlight']} Sunlight, broke mf")
+        await interaction.response.send_message(f"Not enought sunlight, total: {total} Sunlight, balance: {data[userid]['sunlight']} Sunlight, broke mf", ephemeral=True)
         return
-    data[userid]['sunlight'] -= total
+    data[userid]['sunlight'] = round(data[userid]['sunlight'] - total, 2)
     with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     with lock and open('user-stocks.json') as f:
@@ -301,19 +314,23 @@ async def buystock(interaction, stockname: str, amount: int = 1):
         investors[userid][stockname] += amount
     with lock and open('user-stocks.json', 'w') as f:
         json.dump(investors, f, indent=2)
-    await interaction.response.send_message(f"Bought {amount} shares of {stockname} for {total} Sunlight, Balance: {data[userid]['sunlight']} Sunlight")
+    await interaction.response.send_message(f"Bought {amount} shares of {stockname} for {total} Sunlight, Balance: {data[userid]['sunlight']} Sunlight", ephemeral=True)
 
 @bot.tree.command(guild=guild)
+@app_commands.autocomplete(stockname=stockname_autocomplete)
 async def sellstock(interaction, stockname: str, amount: str = "1"):
     """sells a stock"""
     userid = str(interaction.user.id)
     with lock and open('stocks.json') as f:
         stocks = json.load(f)
     if stockname not in stocks:
-        await interaction.response.send_message("Invalid stock name")
+        await interaction.response.send_message("Invalid stock name", ephemeral=True)
         return
     with lock and open('user-stocks.json') as f:
         investors = json.load(f)
+    if stockname not in investors[userid]:
+        await interaction.response.send_message("You dont own any of this stock silly", ephemeral=True)
+        return
     try:
         if investors[userid][stockname] <= int(amount):
             amount = investors[userid][stockname]
@@ -323,7 +340,7 @@ async def sellstock(interaction, stockname: str, amount: str = "1"):
             investors[userid][stockname] -= int(amount)
     except:
         if amount != "all":
-            await interaction.response.send_message("Invalid amount")
+            await interaction.response.send_message("Invalid amount", ephemeral=True)
             return
         amount = investors[userid][stockname]
         del investors[userid][stockname]
@@ -332,10 +349,10 @@ async def sellstock(interaction, stockname: str, amount: str = "1"):
         json.dump(investors, f, indent=2)
     with lock and open('data.json') as f:
         data = json.load(f)
-    data[userid]['sunlight'] += total
+    data[userid]['sunlight'] = round(data[userid]['sunlight'] + total, 2)
     with lock and open('user-stocks.json', 'w') as f:
         json.dump(investors, f, indent=2)
-    await interaction.response.send_message(f"Sold {amount} shares of {stockname} for {total} Sunlight, Balance: {data[userid]['sunlight']} Sunlight")
+    await interaction.response.send_message(f"Sold {amount} shares of {stockname} for {total} Sunlight, Balance: {data[userid]['sunlight']} Sunlight", ephemeral=True)
 
 @bot.tree.command(guild=guild)
 async def resetstocks(interaction):
@@ -356,12 +373,53 @@ async def resetstocks(interaction):
     with lock and open('user-stocks.json', 'w') as f:
         json.dump(investors, f, indent=2)
     await interaction.response.send_message("Stock market reset :(")
+
+#item shop and inventory--------------------------------------------------------------------------
+
+@bot.tree.command(guild=guild)
+async def inventory(interaction):
+    """shows your inventory"""
+    userid = str(interaction.user.id)
+    message = ''
+    with lock and open('user-inventories.json') as f:
+        inventories = json.load(f)
+    for item in inventories[userid]:
+        message = message + f"{item}: {inventories[userid][item]}\n"
+    if message == '':
+        await interaction.response.send_message("No items in inventory")
+        return
+    await interaction.response.send_message(message, ephemeral=True)
+
+async def item_autocompletion(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('user-inventories.json') as f:
+        inventories = json.load(f)
+    choices = []
+    for item in inventories[str(interaction.user.id)]:
+        if current.lower() in item.lower():
+            choices.append(app_commands.Choice(name=item, value=item))
+    return choices
+            
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(item=item_autocompletion)
+async def itemdesc(interaction, item: str):
+    """shows an items descritption"""
+    userid = str(interaction.user.id)
+    with lock and open('items.json') as f:
+        items = json.load(f)
+    if item not in items:
+        await interaction.response.send_message("Invalid item")
+    with lock and open('user-inventories.json') as f:
+        inventories = json.load(f)
+    if item not in inventories[userid]:
+        await interaction.response.send_message("You do not own any of this item")
+    embed = discord.Embed(title=item, description=items[item]['description'], color=rarity_colors[items[item]['rarity']])
+    embed.add_field(name="Price", value=f"{items[item]['price']} Sunlight", inline=True)
+    embed.add_field(name="Consumable", value=items[item]['consumable'])
+    await interaction.response.send_message(embed=embed, ephemeral=True)
     
 # @bot.tree.command(guild=guild)
 # async def say(interaction):
 #     """mocks you"""
-#     print(interaction.user.id)
-#     await interaction.response.send_message(interaction.user.id)
 
 def main():
     bot.run(TOKEN)

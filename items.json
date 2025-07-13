@@ -1,0 +1,14 @@
+{
+  "Estus": {
+    "rarity": "Common",
+    "price": 1,
+    "consumable": true,
+    "description": "Does some health shit."
+  },
+  "Sunlight Medal": {
+    "rarity": "Incandescent",
+    "price": 2000,
+    "consumable": false,
+    "description": "Some really cool shit."
+  }
+}
