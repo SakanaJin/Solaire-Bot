@@ -200,6 +200,7 @@ async def berserk(interaction):
 
 @bot.tree.command(guild=guild)
 async def waifu(interaction, type: str = "sfw", category: str = 'waifu'):
+    """Throws a waifu"""
     if type == 'n':
         type = "nsfw"
     response = requests.get(f"https://api.waifu.pics/{type}/{category}")
@@ -440,7 +441,7 @@ async def item_autocompletion(interaction, current: str) -> typing.List[app_comm
 @bot.tree.command(guild=guild)
 @app_commands.autocomplete(item=item_autocompletion)
 async def itemdesc(interaction, item: str):
-    """shows an items descritption"""
+    """shows an item's descritption"""
     userid = str(interaction.user.id)
     with lock and open('items.json') as f:
         items = json.load(f)
