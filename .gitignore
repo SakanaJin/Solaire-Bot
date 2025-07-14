@@ -100,3 +100,6 @@ quotes.json
 user-stocks.json
 user-inventories.json
 shop.json
+
+#testing py files
+test.py
