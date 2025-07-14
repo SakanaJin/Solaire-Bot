@@ -1,0 +1,37 @@
+{
+  "Estus": {
+    "rarity": "Common",
+    "price": 9999,
+    "consumable": true,
+    "equipable": false,
+    "description": "Does some health shit."
+  },
+  "Blood Vial": {
+    "rarity": "Uncommon",
+    "price": 9999,
+    "consumable": true,
+    "equipable": false,
+    "description": "Does some slightly better health shit"
+  },
+  "Sunlight Medal": {
+    "rarity": "Incandescent",
+    "price": 9999,
+    "consumable": false,
+    "equipable": false,
+    "description": "Some really cool shit."
+  },
+  "Bonfire Ascetic": {
+    "rarity": "Rare",
+    "price": 9999,
+    "consumable": true,
+    "equipable": false,
+    "description": "Im sure this will do something cool"
+  },
+  "Radiant Shard": {
+    "rarity": "Legendary",
+    "price": 9999,
+    "consumable": false,
+    "equipable": false,
+    "description": "Gacha pulls?"
+  }
+}
