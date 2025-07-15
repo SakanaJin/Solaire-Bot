@@ -1,0 +1,33 @@
+{
+  "Testmon": {
+    "banner": "Normal",
+    "rarity": "Legendary",
+    "basehp": 30,
+    "type": "Fire",
+    "statscales": {
+      "vit": "floor(3 + 0.6 * lvl + 0.01 * lvl**2)",
+      "str": "floor(3 + 0.8 * lvl + 0.1 * lvl**2)",
+      "dex": "floor(2 + 0.5 * lvl)",
+      "int": "floor(2 * log(lvl) + 1)",
+      "fth": "floor(2 * log(lvl) + 1)",
+      "adp": "floor(3 + 0.5 * lvl)",
+      "arc": "floor(2 * log(lvl) + 1)",
+      "res": "floor(2 + 0.6 * lvl + 0.1 * lvl**2)",
+      "def": "floor(3 + 1.8 * lvl + 0.01 * lvl**2)"
+    },
+    "skills": {
+      "testskill": {
+        "basedmg": 10,
+        "rarity": "Legendary",
+        "scaling": {
+          "str": "A",
+          "dex": "C",
+          "int": "E",
+          "fth": "D",
+          "arc": "E"
+        },
+        "statuses": []
+      }
+    }
+  }
+}

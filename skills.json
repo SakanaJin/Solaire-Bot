@@ -1,0 +1,15 @@
+{
+  "Testskill": {
+    "price": 999,
+    "basedmg": 100,
+    "rarity": "Legendary",
+    "scaling": {
+      "str": "S",
+      "dex": "S",
+      "int": "S",
+      "fth": "S",
+      "arc": "S"
+    },
+    "statuses": []
+  }
+}
