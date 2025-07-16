@@ -19,10 +19,21 @@ type_adv = { #defending then attacker
     }
 }
 
-scaling = {"E": 0, "D": 0.25, "C": 0.6, "B": 0.9, "A": 1.4, "S": 1.75}
+scaling = {"-": 0, "E": 0.25, "D": 0.6, "C": 0.9, "B": 1.4, "A": 1.75, "S": 2.2}
 
-def calc_hp(lvl: int, vit: int, base_hp: int) -> int:
-    return math.floor(base_hp + 3 * lvl + 0.3 * lvl**2 + 4 * vit)
+def calc_hp(mon: dict, skelemon: dict) -> int:
+    return math.floor(skelemon['basehp'] + 3 * mon['lvl'] + 0.3 * mon['lvl']**2 + 4 * mon['stats']['vit'])
+
+def calc_next_level_exp(mon: dict) -> int:
+    statsum = sum(mon['stats'].values())
+    sauce = (statsum + mon['maxhp']) / 109
+    return math.floor(1 + 4 * mon['lvl'] + 4 * sauce**2)
+
+def drop_exp(winner: dict, loser: dict) -> int:
+    lsauce = (sum(loser['stats'].values()) + loser['maxhp']) / 109
+    saucediff = max(lsauce - (sum(winner['stats'].values()) + winner['maxhp']) / 109, 1)
+    lvldiff = max(loser['lvl'] - winner['lvl'], 1)
+    return math.floor(1 + lvldiff * loser['lvl'] + saucediff * lsauce**2)
 
 def saturation(stat: int) -> float:
     return sum((100 * n)/(100 + n**2) for n in range(1, stat + 1))
@@ -45,8 +56,8 @@ def make_growth_function(expr: str):
         return aeval(expr)
     return growth
 
-def lvl_up_stats(mon: dict) -> None:
-    growth_funcs = {stat: make_growth_function(expr) for stat, expr in mon['statscales'].items()}
+def lvl_up_stats(mon: dict, monskeleton: dict) -> None:
+    growth_funcs = {stat: make_growth_function(expr) for stat, expr in monskeleton['statscales'].items()}
     mon['stats'] = {stat: func(mon['lvl']) for stat, func in growth_funcs.items()}
 
 def hit_chance(attacker: dict, defender: dict) -> float:

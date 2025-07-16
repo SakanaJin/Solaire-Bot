@@ -1,8 +1,65 @@
 {
   "Testskill": {
-    "price": 999,
+    "banner": "Normal",
     "basedmg": 100,
     "rarity": "Legendary",
+    "description": "This skill does some testing",
+    "scaling": {
+      "str": "S",
+      "dex": "S",
+      "int": "S",
+      "fth": "S",
+      "arc": "S"
+    },
+    "statuses": []
+  },
+  "Testerskill": {
+    "banner": "Normal",
+    "basedmg": 100,
+    "rarity": "Rare",
+    "description": "This skill does some testing",
+    "scaling": {
+      "str": "S",
+      "dex": "S",
+      "int": "S",
+      "fth": "S",
+      "arc": "S"
+    },
+    "statuses": []
+  },
+  "Testingskill": {
+    "banner": "Normal",
+    "basedmg": 100,
+    "rarity": "Uncommon",
+    "description": "This skill does some testing",
+    "scaling": {
+      "str": "S",
+      "dex": "S",
+      "int": "S",
+      "fth": "S",
+      "arc": "S"
+    },
+    "statuses": []
+  },
+  "Testiestskills": {
+    "banner": "Normal",
+    "basedmg": 100,
+    "rarity": "Common",
+    "description": "This skill does some testing",
+    "scaling": {
+      "str": "S",
+      "dex": "S",
+      "int": "S",
+      "fth": "S",
+      "arc": "S"
+    },
+    "statuses": []
+  },
+  "Skilltest": {
+    "banner": "Normal",
+    "basedmg": 100,
+    "rarity": "Incandescent",
+    "description": "This skill does some testing",
     "scaling": {
       "str": "S",
       "dex": "S",

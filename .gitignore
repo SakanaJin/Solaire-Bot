@@ -102,6 +102,7 @@ user-inventories.json
 shop.json
 user-mons.json
 user-battles.json
+user-skills.json
 
 #testing py files
 test.py

@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import os
 import random
+from random import SystemRandom
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -28,6 +29,8 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 general = None
 guild = discord.Object(id=GID)
 
+sysrand = SystemRandom()
+
 headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "If only I could be so grossly incandescent", "author": "Solaire"}, {"quote": "Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father", "author": "Solaire"}, {"quote": "You really are fond of chatting with me, aren't you? If I didn't know better, I'd think you had feelings for me! Ha ha ha", "author": "Solaire"}, {"quote": "I am Solaire of Astora, an adherent of the Lord of Sunlight. Now that I am Undead, I have come to this great land, the birthplace of Lord Gwyn, to seek my very own sun", "author": "Solaire"}, {"quote": "We are amidst strange beings, in a strange land. The flow of time itself is convoluted; with heroes centuries old phasing in and out", "author": "Solaire"}]
@@ -51,7 +54,7 @@ async def on_ready():
 async def on_member_join(member):
     with lock and open('data.json') as f:
         data = json.load(f)
-    data[member.id] = {"name": member.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100}
+    data[member.id] = {"name": member.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
     with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await general.send(f"Welcome to the server {member.name}! Enjoying the sunlight?")
@@ -73,19 +76,19 @@ async def stock_check():
         stocks = json.load(f)
     if datetime.date.today().weekday() in (0, 4): # monday and thursday
         for stock in stocks:
-            stocks[stock]['favorlvl'] = random.choices(stock_favorlvls, weights=[5,25,50,25,5])[0]
+            stocks[stock]['favorlvl'] = random.choices(stock_favorlvls, weights=[5,25,40,25,5])[0]
     for stock in stocks:
         match stocks[stock]['favorlvl']:
             case 'hated':
-                percent_change = random.uniform(-0.20, 0.02)
+                percent_change = sysrand.uniform(-0.20, 0.02)
             case 'poor':
-                percent_change = random.uniform(-0.05, 0.02)
+                percent_change = sysrand.uniform(-0.05, 0.02)
             case 'neutral':
-                percent_change = random.uniform(-0.02, 0.05)
+                percent_change = sysrand.uniform(-0.02, 0.05)
             case 'favored':
-                percent_change = random.uniform(-0.02, 0.15)
+                percent_change = sysrand.uniform(-0.02, 0.15)
             case 'loved':
-                percent_change = random.uniform(-0.02, 0.20)
+                percent_change = sysrand.uniform(-0.02, 0.20)
         stocks[stock]['price'] += stocks[stock]['price'] * percent_change
         stocks[stock]['price'] = round(stocks[stock]['price'], 2)
         sign = ""
@@ -270,7 +273,7 @@ async def resetdata(interaction):
         return
     data = {}
     for user in interaction.guild.members:
-        data[user.id] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100}
+        data[user.id] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
     with lock and  open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await interaction.response.send_message("data reset")
@@ -584,6 +587,280 @@ async def testcolors(interaction):
         await channel.send(embed=embed)
     await interaction.response.send_message("Rarity color embed test", ephemeral=True)
     
+#gricklemon commands---------------------------------------------------------------------------------------------------------------------------------------------
+
+def skill_to_embed(skillname: str, skill: dict) -> discord.Embed:
+    scaling_string = "".join(f"{stat}: {scale}\n" for stat, scale in skill['scaling'].items())
+    if len(skill['statuses']) == 0:
+        status_string = "None"
+    else: 
+        status_string = "".join(f"{status}" for status in skill['statuses'])
+    embed = discord.Embed(title=skillname, description=skill['description'], color=rarity_colors[skill['rarity']])
+    embed.set_author(name=f"{skill['basedmg']} damage")
+    embed.set_footer(text=f"Equiped: {skill['equiped']}")
+    embed.add_field(name="Scaling:", value=scaling_string, inline=False)
+    embed.add_field(name="Status Effects:", value=status_string, inline=False)
+    return embed
+
+def mon_to_embed(monname: str, mon: dict) -> discord.Embed:
+    if len(mon['equiped'].keys()) == 0:
+        equip_string = "None"
+    else:
+        equip_string = mon['equiped'].keys()[0]
+    stats_string = "".join(f"{stat}: {value}\n" for stat, value in mon['stats'].items())
+    skills_string = "".join(f"{skillname}: {skill['basedmg']}\n" for skillname, skill in mon['skills'].items())
+    embed = discord.Embed(title=monname, description=mon['description'], color=rarity_colors[mon['rarity']])
+    embed.set_author(name=f"lvl: {mon['lvl']} nextlvl: {mon['nextlvl']}")
+    embed.set_footer(text=mon['type'])
+    embed.add_field(name="Max Hp", value=mon['maxhp'], inline=True)
+    embed.add_field(name="Current Hp", value=mon['currhp'], inline=True)
+    embed.add_field(name="Stats:", value=stats_string, inline=False)
+    embed.add_field(name="Skills:", value=skills_string, inline=False)
+    embed.add_field(name="Equiped:", value=equip_string, inline=False)
+    return embed
+
+@bot.tree.command(guild=guild)
+async def mons(interaction):
+    """Shows your Gricklemon"""
+    message = ""
+    with lock and open('user-mons.json') as f:
+        users_mons = json.load(f)
+    user_mons = users_mons[str(interaction.user.id)]
+    for mon in user_mons:
+        message = message + f"{mon}: {user_mons[mon]['rarity']}\n"
+    if message == "":
+        await interaction.response.send_message("No Gricklemon in your possession", ephemeral=True)
+        return
+    await interaction.response.send_message(message, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+async def skills(interaction):
+    """Shows your skills"""
+    message = ""
+    with lock and open('user-skills.json') as f:
+        users_skills = json.load(f)
+    user_skills = users_skills[str(interaction.user.id)]
+    for skill in user_skills:
+        message = message + f"{skill}: {user_skills[skill]['rarity']}"
+    if message == "":
+        await interaction.response.send_message("No skills in your possession", ephemeral=True)
+        return
+    await interaction.response.send_message(message, ephemeral=True)
+
+async def user_skill_autocompletion(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('user-skills.json') as f:
+        user_skills = json.load(f)
+    choices = []
+    for skill in user_skills[str(interaction.user.id)]:
+        if current.lower() in skill.lower():
+            choices.append(app_commands.Choice(name=skill, value=skill))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(skill=user_skill_autocompletion)
+async def skilldesc(interaction, skill: str):
+    """Shows skill description"""
+    userid = str(interaction.user.id)
+    with lock and open('user-skills.json') as f:
+        users_skills = json.load(f)
+    user_skills = users_skills[userid]
+    if skill not in user_skills:
+        await interaction.response.send_message("Skill not in your possession", ephemeral=True)
+        return
+    embed = skill_to_embed(skill, user_skills[skill])
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+async def user_mon_autocompletion(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('user-mons.json') as f:
+        user_mons = json.load(f)
+    choices = []
+    for mon in user_mons[str(interaction.user.id)]:
+        if current.lower() in mon.lower():
+            choices.append(app_commands.Choice(name=mon, value=mon))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=user_mon_autocompletion)
+async def mondesc(interaction, mon: str):
+    """Shows Gricklemon description"""
+    userid = str(interaction.user.id)
+    with lock and open('user-mons.json') as f:
+        users_mons = json.load(f)
+    user_mons = users_mons[userid]
+    if mon not in user_mons:
+        await interaction.response.send_message("Gricklemon not in your possession", ephemeral=True)
+        return
+    embed = mon_to_embed(mon, user_mons[mon])
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+def mon_to_usermon(skelemon: dict) -> dict:
+    skelecopy = skelemon.copy()
+    del skelecopy['banner']
+    skelecopy['lvl'] = 1
+    grickle.lvl_up_stats(skelecopy, skelecopy)
+    del skelecopy['statscales']
+    skelecopy['maxhp'] = grickle.calc_hp(skelecopy, skelecopy)
+    skelecopy['currhp'] = skelecopy['maxhp']
+    del skelecopy['basehp']
+    skelecopy['nextlvl'] = grickle.calc_next_level_exp(skelecopy)
+    skelecopy['gaol'] = False
+    skelecopy['away'] = False
+    skelecopy['equiped'] = {}
+    skelecopy['statuses'] = []
+    return skelecopy
+
+def skill_to_userskill(skeleskill: dict) -> dict:
+    skelecopy = skeleskill.copy()
+    del skelecopy['banner']
+    skelecopy['equiped'] = False
+    return skelecopy
+
+@bot.tree.command(guild=guild)
+async def pull(interaction):
+    """Five pulls one Grickly boi"""
+    userid = str(interaction.user.id)
+    dupes = 0
+    embeds = []
+    with lock and open('user-inventories.json') as f:
+        inventories = json.load(f)
+    user_inventory = inventories[userid]
+    if "Radiant Shard" not in user_inventory or user_inventory['Radiant Shard'] <= 5:
+        await interaction.response.send_message("Not enought Radiant Shards", ephemeral=True)
+        return
+    if user_inventory['Radiant Shard'] == 5:
+        del user_inventory['Radiant Shard']
+    else:
+        user_inventory['Radiant Shard'] -= 5
+    inventories[userid] = user_inventory
+    with lock and open('user-inventories.json', 'w') as f:
+        json.dump(inventories, f, indent=2)
+    with lock and open('gricklemon.json') as f:
+        mons = json.load(f)
+    mon_list_rare = {mon: value for mon, value in mons.items() if value['banner'] == 'Normal' and value['rarity'] == 'Rare'} #<-------- banner stuff go here when make banners
+    mon_list_legendary = {mon: value for mon, value in mons.items() if value['banner'] == 'Normal' and value['rarity'] == 'Legendary'}
+    rarity = random.choices(["Rare", "Legendary"], weights=[95,5])[0]
+    match rarity:
+        case "Rare":
+            chosen_boi = random.choice(list(mon_list_rare.keys()))
+        case "Legendary":
+            chosen_boi = random.choice(list(mon_list_legendary.keys()))
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    if chosen_boi in boxes[userid]:
+        dupes += 1
+    else:
+        boxes[userid][chosen_boi] = mon_to_usermon(mons[chosen_boi])
+        with lock and open('user-mons.json', 'w') as f:
+            json.dump(boxes, f, indent=2)
+    embeds.append(mon_to_embed(chosen_boi, boxes[userid][chosen_boi]))
+    with lock and open('skills.json') as f:
+        skills = json.load(f)
+    with lock and open('user-skills.json') as f:
+        skill_boxes = json.load(f)
+    skill_list_common = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Common"} #<-----------------------and here
+    skill_list_uncommon = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Uncommon"}
+    skill_list_rare = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Rare"}
+    skill_list_legendary = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Legendary"}
+    skill_list_incandescent = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Incandescent"}
+    already_chosen = []
+    for _ in range(5):
+        while True:
+            rarity = random.choices(["Common", "Uncommon", "Rare", "Legendary", "Incandescent"], weights=[45, 25, 15, 10, 5])[0]
+            match rarity:
+                case "Common":
+                    chosen_skill = random.choice(list(skill_list_common.keys()))
+                    if chosen_skill not in already_chosen:
+                        already_chosen.append(chosen_skill)
+                        break
+                case "Uncommon":
+                    chosen_skill = random.choice(list(skill_list_uncommon.keys()))
+                    if chosen_skill not in already_chosen:
+                        already_chosen.append(chosen_skill)
+                        break
+                case "Rare":
+                    chosen_skill = random.choice(list(skill_list_rare.keys()))
+                    if chosen_skill not in already_chosen:
+                        already_chosen.append(chosen_skill)
+                        break
+                case "Legendary":
+                    chosen_skill = random.choice(list(skill_list_legendary.keys()))
+                    if chosen_skill not in already_chosen:
+                        already_chosen.append(chosen_skill)
+                        break
+                case "Incandescent":
+                    chosen_skill = random.choice(list(skill_list_incandescent.keys()))
+                    if chosen_skill not in already_chosen:
+                        already_chosen.append(chosen_skill)
+                        break
+        if chosen_skill in skill_boxes[userid]:
+            dupes += 1
+        else:
+            skill_boxes[userid][chosen_skill] = skill_to_userskill(skills[chosen_skill])
+        embeds.append(skill_to_embed(chosen_skill, skill_boxes[userid][chosen_skill]))
+    with lock and open('user-skills.json', 'w') as f:
+        json.dump(skill_boxes, f, indent=2)
+    with lock and open('items.json') as f:
+        items = json.load(f)
+    dupe_return = dupes * (items['Radiant Shard']['price'] / 2)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    data[userid]['sunlight'] += dupe_return
+    with lock and open('data.json', 'w') as f:
+        json.dump(data, f, indent=2)
+    await interaction.response.send_message(f"dupes: {dupes}, Sunlight back: {dupe_return}", embeds=embeds, ephemeral=True)
+
+async def mon_not_away_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    box = boxes[str(interaction.user.id)]
+    choices = []
+    for mon in box:
+        if current.lower() in mon.lower() and not box[mon]['away']:
+            choices.append(app_commands.Choice(name=mon, value=mon))
+    return choices
+
+async def skill_not_equiped_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('user-skills.json') as f:
+        skillboxes = json.load(f)
+    skillbox = skillboxes[str(interaction.user.id)]
+    choices = []
+    for skill in skillbox:
+        if current.lower() in skill.lower() and not skillbox[skill]['equiped']:
+            choices.append(app_commands.Choice(name=skill, value=skill))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=mon_not_away_autocomplete)
+@app_commands.autocomplete(skill=skill_not_equiped_autocomplete)
+async def equipskill(interaction, mon: str, skill: str):
+    """Equips a skill to a Grickle"""
+    userid = str(interaction.user.id)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    with lock and open('user-skills.json') as f:
+        skillboxes = json.load(f)
+    box = boxes[userid]
+    skillbox = skillboxes[userid]
+    if mon not in box or box[mon]['away']:
+        await interaction.response.send_message(f"Invalid Gricklemon", ephemeral=True)
+        return
+    if skill not in skillbox or skillbox[skill]['equiped']:
+        await interaction.response.send_message(f"Invalid Skill", ephemeral=True)
+        return
+    if len(box[mon]['skills']) == 4:
+        await interaction.response.send_message(f"Can only equip 4 skills", ephemeral=True)
+        return
+    box[mon]['skills'][skill] = skillbox[skill]
+    skillbox[skill]['equiped'] = True
+    boxes[userid] = box
+    skillboxes[userid] = skillbox
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+    with lock and open('user-skills.json', 'w') as f:
+        json.dump(skillboxes, f, indent=2)
+    await interaction.response.send_message(f"Equiped {skill} to {mon}", ephemeral=True)
+
+#create unequip command
 
 def main():
     bot.run(TOKEN)
