@@ -4,6 +4,7 @@
     "price": 9999,
     "consumable": true,
     "equipable": false,
+    "battleonly": false,
     "description": "Does some health shit."
   },
   "Blood Vial": {
@@ -11,6 +12,7 @@
     "price": 9999,
     "consumable": true,
     "equipable": false,
+    "battleonly": false,
     "description": "Does some slightly better health shit"
   },
   "Sunlight Medal": {
@@ -18,6 +20,7 @@
     "price": 9999,
     "consumable": false,
     "equipable": false,
+    "battleonly": false,
     "description": "Some really cool shit."
   },
   "Bonfire Ascetic": {
@@ -25,6 +28,7 @@
     "price": 9999,
     "consumable": true,
     "equipable": false,
+    "battleonly": true,
     "description": "Im sure this will do something cool"
   },
   "Radiant Shard": {
@@ -32,6 +36,15 @@
     "price": 9999,
     "consumable": false,
     "equipable": false,
+    "battleonly": false,
     "description": "Gacha pulls?"
+  },
+  "Stonesword Key": {
+    "rarity": "Legendary",
+    "price": 9999,
+    "consumable": true,
+    "equipable": false,
+    "battleonly": false,
+    "description": "Breaks on Gricklemon out of Gaol"
   }
 }

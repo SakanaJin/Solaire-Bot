@@ -1,0 +1,17 @@
+{
+  "active": "Normal",
+  "Normal": {
+    "rarity": "Common",
+    "description": "The standard banner when nothings happening",
+    "drop-pool": {
+      "none": "none",
+      "Estus": {
+        "rarity": "Common",
+        "price": 9999,
+        "consumable": true,
+        "equipable": false,
+        "description": "Does some health shit."
+      }
+    }
+  }
+}

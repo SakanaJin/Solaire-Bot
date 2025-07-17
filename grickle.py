@@ -35,6 +35,28 @@ def drop_exp(winner: dict, loser: dict) -> int:
     lvldiff = max(loser['lvl'] - winner['lvl'], 1)
     return math.floor(1 + lvldiff * loser['lvl'] + saucediff * lsauce**2)
 
+def drop_sunlight(loser: dict) -> int:
+    base_sunlight = 5
+    statsum = sum(loser['stats'].values())
+    sauce = (statsum + loser['maxhp']) / 109
+    return base_sunlight * sauce
+
+def process_lvls(mon: dict, skelemon: dict, exp: int) -> None:
+    while True:
+        expdiff = exp - mon['nextlvl']
+        if expdiff >= 0:
+            mon['lvl'] += 1
+            mon['maxhp'] = calc_hp(mon, skelemon)
+            mon['currhp'] = mon['maxhp']
+            lvl_up_stats(mon, skelemon)
+            mon['nextlvl'] = calc_next_level_exp(mon)
+            exp = expdiff
+        elif exp != 0:
+            mon['nextlvl'] += expdiff
+            break
+        else:
+            break
+
 def saturation(stat: int) -> float:
     return sum((100 * n)/(100 + n**2) for n in range(1, stat + 1))
 
@@ -46,7 +68,7 @@ def damage(attacker: dict, defender: dict, skill: dict) -> float:
         typemult = 1
     else:
         typemult = type_adv[defender['type']][attacker['type']]
-    return AR(skill['scaling'], skill['base'], attacker['stats']) * (100 / (100 + defender['stats']['def'])) * typemult
+    return AR(skill['scaling'], skill['basedmg'], attacker['stats']) * (100 / (100 + defender['stats']['def'])) * typemult
 
 def make_growth_function(expr: str):
     def growth(lvl: int):
@@ -63,7 +85,7 @@ def lvl_up_stats(mon: dict, monskeleton: dict) -> None:
 def hit_chance(attacker: dict, defender: dict) -> float:
     base_hit = 0.80
     max_hit = 0.98
-    min_hit = 0.10
+    min_hit = 0.50
     hit_chance = base_hit + ((attacker['stats']['adp'] - defender['stats']['adp']) * 0.01)
     return max(min(hit_chance, max_hit), min_hit)
 
