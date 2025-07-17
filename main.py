@@ -693,10 +693,10 @@ async def mondesc(interaction, mon: str):
     embed = mon_to_embed(mon, user_mons[mon])
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
-def mon_to_usermon(skelemon: dict) -> dict:
+def mon_to_usermon(skelemon: dict, lvl: int) -> dict:
     skelecopy = skelemon.copy()
     del skelecopy['banner']
-    skelecopy['lvl'] = 1
+    skelecopy['lvl'] = lvl
     grickle.lvl_up_stats(skelecopy, skelecopy)
     del skelecopy['statscales']
     skelecopy['maxhp'] = grickle.calc_hp(skelecopy, skelecopy)
@@ -736,8 +736,11 @@ async def pull(interaction):
         json.dump(inventories, f, indent=2)
     with lock and open('gricklemon.json') as f:
         mons = json.load(f)
-    mon_list_rare = {mon: value for mon, value in mons.items() if value['banner'] == 'Normal' and value['rarity'] == 'Rare'} #<-------- banner stuff go here when make banners
-    mon_list_legendary = {mon: value for mon, value in mons.items() if value['banner'] == 'Normal' and value['rarity'] == 'Legendary'}
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    active_banner = banners['active']
+    mon_list_rare = {mon: value for mon, value in mons.items() if value['banner'] == active_banner and value['rarity'] == 'Rare'}
+    mon_list_legendary = {mon: value for mon, value in mons.items() if value['banner'] == active_banner and value['rarity'] == 'Legendary'}
     rarity = random.choices(["Rare", "Legendary"], weights=[95,5])[0]
     match rarity:
         case "Rare":
@@ -749,7 +752,7 @@ async def pull(interaction):
     if chosen_boi in boxes[userid]:
         dupes += 1
     else:
-        boxes[userid][chosen_boi] = mon_to_usermon(mons[chosen_boi])
+        boxes[userid][chosen_boi] = mon_to_usermon(mons[chosen_boi], lvl=1)
         with lock and open('user-mons.json', 'w') as f:
             json.dump(boxes, f, indent=2)
     embeds.append(mon_to_embed(chosen_boi, boxes[userid][chosen_boi]))
@@ -757,11 +760,11 @@ async def pull(interaction):
         skills = json.load(f)
     with lock and open('user-skills.json') as f:
         skill_boxes = json.load(f)
-    skill_list_common = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Common"} #<-----------------------and here
-    skill_list_uncommon = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Uncommon"}
-    skill_list_rare = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Rare"}
-    skill_list_legendary = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Legendary"}
-    skill_list_incandescent = {skill: value for skill, value in skills.items() if value['banner'] == 'Normal' and value['rarity'] == "Incandescent"}
+    skill_list_common = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Common"}
+    skill_list_uncommon = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Uncommon"}
+    skill_list_rare = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Rare"}
+    skill_list_legendary = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Legendary"}
+    skill_list_incandescent = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Incandescent"}
     already_chosen = []
     for _ in range(5):
         while True:
@@ -815,7 +818,7 @@ async def mon_not_away_autocomplete(interaction, current: str) -> typing.List[ap
     box = boxes[str(interaction.user.id)]
     choices = []
     for mon in box:
-        if current.lower() in mon.lower() and not box[mon]['away']:
+        if current.lower() in mon.lower() and not box[mon]['away'] and not box[mon]['gaol']:
             choices.append(app_commands.Choice(name=mon, value=mon))
     return choices
 
@@ -841,7 +844,7 @@ async def equipskill(interaction, mon: str, skill: str):
         skillboxes = json.load(f)
     box = boxes[userid]
     skillbox = skillboxes[userid]
-    if mon not in box or box[mon]['away']:
+    if mon not in box or box[mon]['away'] or box[mon]['gaol']:
         await interaction.response.send_message(f"Invalid Gricklemon", ephemeral=True)
         return
     if skill not in skillbox or skillbox[skill]['equiped']:
@@ -860,7 +863,309 @@ async def equipskill(interaction, mon: str, skill: str):
         json.dump(skillboxes, f, indent=2)
     await interaction.response.send_message(f"Equiped {skill} to {mon}", ephemeral=True)
 
-#create unequip command
+async def equiped_skill_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('user-skills.json') as f:
+        skillboxes = json.load(f)
+    skillbox = skillboxes[str(interaction.user.id)]
+    choices = []
+    for skill in skillbox:
+        if current.lower() in skill.lower() and skillbox[skill]['equiped']:
+            choices.append(app_commands.Choice(name=skill, value=skill))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=mon_not_away_autocomplete)
+@app_commands.autocomplete(skill=equiped_skill_autocomplete)
+async def unequipskill(interaction, mon: str, skill: str):
+    """Unequips a skill from a Grickly boi"""
+    userid = str(interaction.user.id)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    with lock and open('user-skills.json') as f:
+        skillboxes = json.load(f)
+    box = boxes[userid]
+    skillbox = skillboxes[userid]
+    if mon not in box or box[mon]['away'] or box[mon]['gaol']:
+        await interaction.response.send_message("Invalid Gricklemon", ephemeral=True)
+        return
+    if skill not in box[mon]['skills']:
+        await interaction.response.send_message("Invalid Skill", ephemeral=True)
+        return
+    if len(box[mon]['skills']) == 1:
+        await interaction.response.send_message("Gricklemon can not have no skills", ephemeral=True)
+        return
+    skillbox[skill]['equiped'] = False
+    del box[mon]['skills'][skill]
+    boxes[userid] = box
+    skillboxes[userid] = skillbox
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+    with lock and open('user-skills.json', 'w') as f:
+        json.dump(skillboxes, f, indent=2)
+    await interaction.response.send_message(f"Unequiped {skill} from {mon}", ephemeral=True)
+
+class MonSelect(discord.ui.Select):
+    def __init__(self, user: discord.User, box: list):
+        self.user = user
+        options = [discord.SelectOption(label=mon, value=mon) for mon in box]
+        super().__init__(placeholder="Choose a Gricklemon", min_values=1, max_values=1, options=options)
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user.id:
+            await interaction.response.send_message("Stay out of this bub", ephemeral=True)
+            return
+        self.view.selected_value = self.values[0]
+        await interaction.response.defer()
+
+class ConfirmChallengeButton(discord.ui.Button):
+    def __init__(self, user: discord.User):
+        super().__init__(label="Accept", style=discord.ButtonStyle.green)
+        self.user = user
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user.id:
+            await interaction.response.send_message("Jolly cooperation not allowed", ephemeral=True)
+            return
+        if not self.view.selected_value:
+            await interaction.response.send_message("Please select a Gricklemon before accepting.")
+            return
+        await interaction.response.defer()
+        self.view.confirmed = True
+        self.view.stop()
+
+class ChallengeView(discord.ui.View):
+    def __init__(self, user: discord.User, box: list):
+        super().__init__(timeout=120)
+        self.selected_value = None
+        self.confirmed = False
+        self.add_item(MonSelect(user, box))
+        self.add_item(ConfirmChallengeButton(user))
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=mon_not_away_autocomplete)
+async def challenge(interaction, vs: discord.User, mon: str):
+    """Challenges a user"""
+    userid = str(interaction.user.id)
+    enemyid = str(vs.id)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    box = boxes[userid]
+    if enemyid == "1209602748908048464":
+        await interaction.response.send_message("You wish to challenge me? Maybe if you were more incandescent I'd take you seriously.", ephemeral=True)
+        return
+    if enemyid == userid:
+        await interaction.response.send_message("Invalid user", ephemeral=True)
+        return
+    if data[enemyid]['battleid'] != 0:
+        await interaction.response.send_message("User already in battle", ephemeral=True)
+        return
+    if mon not in box or box[mon]['away'] or box[mon]['gaol']:
+        await interaction.response.send_message("Invalid Gricklemon", ephemeral=True)
+        return
+    enemybox = boxes[enemyid]
+    view = ChallengeView(vs, list(enemybox.keys()))
+    await interaction.response.send_message(f"{vs.mention}, {interaction.user.mention} has challenged you to a Gricklemon duel. Select a mon and confirm or hide in the shadows.", view=view)
+    await view.wait()
+    if view.confirmed:
+        with lock and open('battles.json') as f:
+            battles = json.load(f)
+        battles[battles['nextid']] = {userid: {mon: box[mon]}, enemyid: {view.selected_value: enemybox[view.selected_value]}, "turn": enemyid}
+        box[mon]['away'] = True
+        enemybox[view.selected_value]['away'] = True
+        data[userid]['battleid'] = battles['nextid']
+        data[enemyid]['battleid'] = battles['nextid']
+        battles['nextid'] += 1
+        boxes[userid] = box
+        boxes[enemyid] = enemybox
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        with lock and open('data.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        with lock and open('user-mons.json', 'w') as f:
+            json.dump(boxes, f, indent=2)
+        await interaction.followup.send(f"{vs.mention} has accepted the challenge, {vs.mention} has the first turn")
+    else:
+        await interaction.followup.send(f"{vs.mention} did not accept the challenge or failed to notice in time.")
+    try:
+        message = await interaction.original_response()
+        await message.delete()
+    except discord.NotFound():
+        pass
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=mon_not_away_autocomplete)
+async def battle(interaction, mon: str):
+    """Starts a battle with a random mon from active banner"""
+    userid = str(interaction.user.id)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    box = boxes[userid]
+    if data[userid]['battleid'] != 0:
+        await interaction.response.send_message("You're already in a battle genius.", ephemeral=True)
+        return
+    if mon not in box or box[mon]['away'] or box[mon]['gaol']:
+        await interaction.response.send_message("Invalid Gricklemon", ephemeral=True)
+        return
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    active_banner = banners['active']
+    with lock and open('gricklemon.json') as f:
+        mons = json.load(f)
+    banner_mons_rare = {mon: value for mon, value in mons.items() if value['rarity'] == "Rare" and value['banner'] == active_banner}
+    banner_mons_legendary = {mon: value for mon, value in mons.items() if value['rarity'] == "Legendary" and value['banner'] == active_banner}
+    rarity = random.choices(["Rare", "Legendary"], weights=[65, 35])[0]
+    match rarity:
+        case "Rare":
+            chosen_boi = random.choice(list(banner_mons_rare.keys()))
+        case "Legendary":
+            chosen_boi = random.choice(list(banner_mons_legendary.keys()))
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    enemylvl = random.randint(max(box[mon]['lvl'] - 10, 0), box[mon]['lvl'] + 10)
+    battles[battles['nextid']] = {userid: {mon: box[mon]}, "ai": {chosen_boi: mon_to_usermon(mons[chosen_boi], lvl=enemylvl)}, "turn": userid}
+    box[mon]['away'] = True
+    data[userid]['battleid'] = battles['nextid']
+    battles['nextid'] += 1
+    boxes[userid] = box
+    with lock and open('battles.json', 'w') as f:
+        json.dump(battles, f, indent=2)
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+    with lock and open('data.json', 'w') as f:
+        json.dump(data, f, indent=2)
+    await interaction.response.send_message(f"Battle started with lvl {enemylvl} {rarity} {chosen_boi}. The battle starts with your turn.", ephemeral=True)
+
+async def end_battle(interaction: discord.Interaction, winner: str, loser: str, battles: dict, data: dict):
+    userid = str(interaction.user.id)
+    battleid = str(data[userid]['battleid'])
+    battle = battles[battleid]
+    loserid = [key for key in list(battle.keys()) if key != userid and key != 'turn'][0]
+    winnermon = battle[userid][winner]
+    startlvl = winnermon['lvl']
+    losermon = battle[loserid][loser]
+    exp = grickle.drop_exp(winnermon, losermon)
+    losermon['gaol'] = True
+    with lock and open('gricklemon.json') as f:
+        mons = json.load(f)
+    grickle.process_lvls(winnermon, mons[winner], exp)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    winnermon['away'] = False
+    boxes[userid][winner] = winnermon
+    if loserid != 'ai':
+        boxes[loserid][loser] = losermon
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+    message = f"{winner} defeated {loser} and gained {exp} exp."
+    if startlvl != winnermon['lvl']:
+        message = message + f"\n{winner} leveled up {startlvl} -> {winnermon['lvl']}"
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    active_banner = banners[banners['active']]
+    ephemeral = False
+    if loserid == 'ai':
+        ephemeral = True
+        sunlight = round(grickle.drop_sunlight(losermon), 2)
+        data[userid]['sunlight'] = round(data[userid]['sunlight'] + sunlight, 2)
+        message = message + f"\nGained {sunlight} Sunlight"
+        drop_pool = list(active_banner['drop-pool'].keys())
+        drop = random.choice(drop_pool)
+        if drop == 'none':
+            pass
+        else:
+            with lock and open('user-inventories.json') as f:
+                inventories = json.load(f)
+            inventory = inventories[userid]
+            if drop not in inventory:
+                inventory[drop] = active_banner['drop-pool'][drop]
+            else:
+                inventory[drop] += 1
+            inventories[userid] = inventory
+            with lock and open('user-inventories.json', 'w') as f:
+                json.dump(inventories, f, indent=2)
+            message = message + f"\n{loser} dropped {drop}"
+    del battles[battleid]
+    with lock and open('battles.json', 'w') as f:
+        json.dump(battles, f, indent=2)
+    data[userid]['battleid'] = 0
+    with lock and open('data.json', 'w') as f:
+        json.dump(data, f, indent=2)
+    await interaction.response.send_message(message, ephemeral=ephemeral)
+
+async def battle_skill_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    userid = str(interaction.user.id)
+    battleid = str(data[userid]['battleid'])
+    monname = list(battles[battleid][userid].keys())[0]
+    mon = battles[battleid][userid][monname]
+    choices = []
+    for skill in mon['skills']:
+        if current.lower() in skill.lower():
+            choices.append(app_commands.Choice(name=skill, value=skill))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(skill=battle_skill_autocomplete)
+async def attack(interaction, skill: str):
+    """Attacks with a skill"""
+    userid = str(interaction.user.id)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    battleid = str(data[userid]['battleid'])
+    if battleid == 0:
+        await interaction.response.send_message("Erm you're not in a battle dumbass", ephemeral=True)
+        return
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    battle = battles[battleid]
+    if battle['turn'] != userid:
+        await interaction.response.send_message("WAIT YOUR TURN!!!!!!", ephemeral=True)
+        return
+    mon = list(battle[userid].keys())[0]
+    #start_of_turn_checks() do this tomorrow (today) -----------------------------------------------------------------------------------
+    if skill not in battle[userid][mon]['skills']:
+        await interaction.response.send_message("Invalid skill", ephemeral=True)
+        return
+    enemyid = [enemyid for enemyid in battle if enemyid != userid and enemyid != 'turn'][0]
+    if enemyid == 'ai':
+        ephemeral = True
+    else:
+        ephemeral = False
+    enemymon = list(battle[enemyid].keys())[0]
+    if round(random.random(), 2) <= grickle.hit_chance(battle[userid][mon], battle[enemyid][enemymon]):
+        damage = round(grickle.damage(battle[userid][mon], battle[enemyid][enemymon], battle[userid][mon]['skills'][skill]), 2)
+        battle[enemyid][enemymon]['currhp'] -= damage
+    else:
+        await interaction.response.send_message("Attack missed", ephemeral=ephemeral)
+        battle['turn'] = enemyid
+        battles[battleid] = battle
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        return
+    if battle[enemyid][enemymon]['currhp'] <= 0:
+        await end_battle(interaction, mon, enemymon, battles, data)
+        return
+    status_msg = ''
+    for status in battle[userid][mon]['skills'][skill]['statuses']:
+        if round(random.random(), 2) <= grickle.status_proc_chance(battle[userid], battle[enemyid]):
+            status_msg = status_msg + f"{status} "
+            battle[enemyid][enemymon]['statuses'].append(status)
+    if len(battle[enemyid][enemymon]['statuses']) == 0:
+        message = f"Used {skill} for {damage} damage {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
+    else:
+        message = f"Used {skill} for {damage} and applied statuses: {status_msg} {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
+    battle['turn'] = enemyid
+    battles[battleid] = battle
+    with lock and open('battles.json', 'w') as f:
+        json.dump(battles, f, indent=2)
+    await interaction.response.send_message(message, ephemeral=ephemeral)
+
+#running utility-----------------------------------------------------------------------------------------------
 
 def main():
     bot.run(TOKEN)
