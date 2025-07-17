@@ -4,14 +4,12 @@ from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import os
 import random
-from random import SystemRandom
 import requests
 from bs4 import BeautifulSoup
 import json
 import datetime
 import asyncio
 import typing
-from asteval import Interpreter
 
 import grickle
 
@@ -28,8 +26,6 @@ intents.members = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 general = None
 guild = discord.Object(id=GID)
-
-sysrand = SystemRandom()
 
 headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
@@ -80,15 +76,15 @@ async def stock_check():
     for stock in stocks:
         match stocks[stock]['favorlvl']:
             case 'hated':
-                percent_change = sysrand.uniform(-0.20, 0.02)
+                percent_change = random.randint(-20, 2) / 100
             case 'poor':
-                percent_change = sysrand.uniform(-0.05, 0.02)
+                percent_change = random.randint(-5, 2) / 100
             case 'neutral':
-                percent_change = sysrand.uniform(-0.02, 0.05)
+                percent_change = random.randint(-2, 5) / 100
             case 'favored':
-                percent_change = sysrand.uniform(-0.02, 0.15)
+                percent_change = random.randint(-2, 15) / 100
             case 'loved':
-                percent_change = sysrand.uniform(-0.02, 0.20)
+                percent_change = random.randint(-2, 20) / 100
         stocks[stock]['price'] += stocks[stock]['price'] * percent_change
         stocks[stock]['price'] = round(stocks[stock]['price'], 2)
         sign = ""
