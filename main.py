@@ -9,6 +9,8 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import datetime
+from zoneinfo import ZoneInfo
+from tzlocal import get_localzone_name
 import asyncio
 import typing
 import math
@@ -37,6 +39,9 @@ critical_files = ['stocks.json', 'skills.json', 'items.json', 'gricklemon.json',
 gen_files = ['user-stocks.json', 'user-skills.json', 'user-mons.json', 'user-inventories.json', 'shop.json', 'quotes.json', 'gaol.json', 'data.json', 'battles.json']
 stock_favorlvls = ['hated', 'poor', 'none', 'favored', 'loved']
 rarity_colors = {"Common": 0xf7faf8, "Uncommon": 0x14c744, "Rare": 0x1791e8, "Legendary": 0x7217e8, "Incandescent": 0xfcb632, "Key-Item": 0x068067, "Monument": 0xfcf914}
+bot_tasks = {}
+zone_name = get_localzone_name()
+local_timezone = ZoneInfo(zone_name)
 lock = asyncio.Lock()
 
 #file generation-------------------------------------------------------------------------------------
@@ -172,9 +177,13 @@ async def on_ready():
         print("User data file check complete\n")
     print("Starting tasks")        
     stock_check.start()
+    bot_tasks['Stock Report'] = stock_check
     birthday_check.start()
+    bot_tasks['Birthday Checks'] = birthday_check
     shop_refresh.start()
+    bot_tasks['Shop Refresh'] = shop_refresh
     gaol_refresh.start()
+    bot_tasks['Gaol Break'] = gaol_refresh
     print("Started tasks")
 
 @bot.event
@@ -188,7 +197,7 @@ async def on_member_join(member):
 
 #tasks--------------------------------------------------------------------------------------------------
 
-@tasks.loop(time=datetime.time(hour=15, minute=0)) #1500 utc 1000 cdt
+@tasks.loop(time=datetime.time(hour=10, minute=0, tzinfo=local_timezone)) #1000 server's local timezone
 async def birthday_check():
     with lock and open('data.json') as f:
         data = json.load(f)
@@ -196,7 +205,7 @@ async def birthday_check():
         if data[userid]['birthday'] == str(datetime.date.today().strftime("%m-%d")):
             await general.send(f"Ahh, @everyone... Today is no ordinary day—it is a day of radiance! A day to honor you, a most noble and unwavering soul. Happy birthday, brave {data[userid]['name']}! With each passing year, your light grows stronger, shining boldly even through the deepest dark. May your journey ahead be filled with jolly cooperation, hearty laughter, and the warmth of the ever-glorious sun! So come—raise your arms high, and let us rejoice! Praise it! Praise the Sun! ☀️")
 
-@tasks.loop(time=datetime.time(hour=17, minute=0)) #1700 utc 1200 cdt
+@tasks.loop(time=datetime.time(hour=12, minute=0, tzinfo=local_timezone)) #1200 server's local timezone
 async def stock_check():
     message = f"@everyone\nSunlight stock market report - {datetime.date.today()}\n"
     with open('stocks.json') as f: # might need a lock
@@ -227,7 +236,7 @@ async def stock_check():
         json.dump(stocks, f, indent=2)
     await general.send(message)
 
-@tasks.loop(time=datetime.time(hour=17, minute=30)) #1730 utc 1230 cdt
+@tasks.loop(time=datetime.time(hour=12, minute=30, tzinfo=local_timezone)) #1230 server's local timezone
 async def shop_refresh():
     with lock and open('items.json') as f:
         items = json.load(f)
@@ -259,9 +268,8 @@ async def shop_refresh():
         shop_items[chosen_one] = items[chosen_one]
     with lock and open('shop.json', 'w') as f:
         json.dump(shop_items, f, indent=2)
-    await general.send("@everyone\nShop has been refreshed.")
 
-@tasks.loop(time=datetime.time(hour=11, minute=00)) #1100 utc 0600
+@tasks.loop(time=datetime.time(hour=6, minute=0, tzinfo=local_timezone)) #0600 server's local timezone
 async def gaol_refresh():
     with lock and open('gaol.json') as f:
         gaols = json.load(f)
@@ -297,6 +305,15 @@ async def incfuck(author):
         json.dump(data, f, indent=2)
 
 #commands--------------------------------------------------------------------------------------------------
+
+@bot.tree.command(guild=guild)
+async def schedule(interaction):
+    """Shows scheduled tasks"""
+    message = f"timezone: {zone_name}\n"
+    for taskname, task in bot_tasks.items():
+        next_run = task.next_iteration
+        message += f"{taskname}: {next_run.strftime('%m %d, %H:%M')}\n"
+    await interaction.response.send_message(message, ephemeral=True)
 
 @bot.tree.command(guild=guild)
 async def test(interaction):
