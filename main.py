@@ -167,7 +167,7 @@ async def on_ready():
                 print(f"{file} found in directory")
         if touched:
             for file in gen_files:
-                file_gen_handlers[file](file)
+                await file_gen_handlers[file](file)
                 print(f"Generated {file}")
         print("User data file check complete\n")
     print("Starting tasks")        
