@@ -27,7 +27,8 @@
           "int": "E",
           "fth": "D",
           "arc": "E"
-        }
+        },
+        "statuses": []
       }
     }
   },
@@ -59,7 +60,8 @@
           "int": "E",
           "fth": "D",
           "arc": "E"
-        }
+        },
+        "statuses": []
       }
     }
   }

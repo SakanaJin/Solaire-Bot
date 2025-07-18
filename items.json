@@ -4,23 +4,23 @@
     "price": 9999,
     "consumable": true,
     "equipable": false,
-    "battleonly": false,
-    "description": "Does some health shit."
+    "nobattleonly": false,
+    "description": "Heals 30% of max hp"
   },
   "Blood Vial": {
     "rarity": "Uncommon",
     "price": 9999,
     "consumable": true,
     "equipable": false,
-    "battleonly": false,
-    "description": "Does some slightly better health shit"
+    "nobattleonly": false,
+    "description": "Heals 50% of max hp"
   },
   "Sunlight Medal": {
     "rarity": "Incandescent",
     "price": 9999,
     "consumable": false,
     "equipable": false,
-    "battleonly": false,
+    "nobattleonly": false,
     "description": "Some really cool shit."
   },
   "Bonfire Ascetic": {
@@ -28,7 +28,7 @@
     "price": 9999,
     "consumable": true,
     "equipable": false,
-    "battleonly": true,
+    "nobattleonly": false,
     "description": "Im sure this will do something cool"
   },
   "Radiant Shard": {
@@ -36,7 +36,7 @@
     "price": 9999,
     "consumable": false,
     "equipable": false,
-    "battleonly": false,
+    "nobattleonly": false,
     "description": "Gacha pulls?"
   },
   "Stonesword Key": {
@@ -44,7 +44,7 @@
     "price": 9999,
     "consumable": true,
     "equipable": false,
-    "battleonly": false,
-    "description": "Breaks on Gricklemon out of Gaol"
+    "nobattleonly": true,
+    "description": "Breaks one Gricklemon out of Gaol"
   }
 }

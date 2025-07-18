@@ -1,6 +1,10 @@
 import random
 import math
 from asteval import Interpreter
+import asyncio
+import json
+
+lock = asyncio.Lock()
 
 aeval = Interpreter()
 
@@ -20,6 +24,21 @@ type_adv = { #defending then attacker
 }
 
 scaling = {"-": 0, "E": 0.25, "D": 0.6, "C": 0.9, "B": 1.4, "A": 1.75, "S": 2.2}
+
+status_handler = {}
+item_handler = {}
+
+def register_status(status_name):
+    def decorator(func):
+        status_handler[status_name] = func
+        return func
+    return decorator
+
+def register_item(item_name):
+    def decorator(func):
+        item_handler[item_name] = func
+        return func
+    return decorator
 
 def calc_hp(mon: dict, skelemon: dict) -> int:
     return math.floor(skelemon['basehp'] + 3 * mon['lvl'] + 0.3 * mon['lvl']**2 + 4 * mon['stats']['vit'])
@@ -83,9 +102,12 @@ def lvl_up_stats(mon: dict, monskeleton: dict) -> None:
     mon['stats'] = {stat: func(mon['lvl']) for stat, func in growth_funcs.items()}
 
 def hit_chance(attacker: dict, defender: dict) -> float:
-    base_hit = 0.80
-    max_hit = 0.98
-    min_hit = 0.50
+    # base_hit = 0.50
+    # max_hit = 0.98
+    # min_hit = 0.50
+    base_hit = 1
+    max_hit = 1
+    min_hit = 1
     hit_chance = base_hit + ((attacker['stats']['adp'] - defender['stats']['adp']) * 0.01)
     return max(min(hit_chance, max_hit), min_hit)
 
@@ -106,3 +128,58 @@ def status_unproc_chance(attacker: dict, defender: dict) -> float:
 def poison_damage(attacker: dict, defender: dict) -> float:
     base_poison = 2
     return base_poison * attacker['arc'] * 0.5 * (100 / (100 + defender['res']))
+
+def flee_chance(fleer: dict, fleeing_from: dict) -> float:
+    base_chance = 0.5
+    max_chance = 0.95
+    min_chance = 0.30
+    flee_chance = base_chance + ((fleer['stats']['adp'] - fleeing_from['stats']['adp']) * 0.01)
+    return max(min(flee_chance, max_chance), min_chance)
+
+#status functions-------------------------------------------------------------------------
+
+@register_status(status_name="Paralysis")
+def handle_paralysis(attacker: dict, defender: dict) -> str:
+    if random.random() > status_unproc_chance(attacker, defender):
+        attacker['statuses'].remove("Paralysis")
+        return f"attacker is no longer paralyzed\n"
+    else:
+        return f"attacker is paralyzed"
+    
+@register_status(status_name="Poison")
+def handle_poison(attacker: dict, defender: dict) -> str:
+    if random.random() > status_unproc_chance(attacker, defender):
+        attacker['statuses'].remove("Poison")
+        return f"attacker is no longer poisoned\n"
+    else:
+        damage = poison_damage(attacker, defender)
+        attacker['currhp'] -= damage
+        return f"attacker took {damage} poison damage\n"
+
+#item functions------------------------------------------------------------------------------
+
+def heal(percent: float, mon: dict) -> str:
+    if mon['gaol']:
+        return f"Cannont heal Gricklemon in Gaol"
+    heals = math.floor(mon['maxhp'] * percent)
+    currenthp = mon['currhp']
+    mon['currhp'] = min(mon['currhp'] + heals, mon['maxhp'])
+    return f"healed for {mon['currhp'] - currenthp} hp"
+
+@register_item(item_name="Estus")
+def handle_estus(mon: dict) -> str:
+    message = heal(percent=0.30, mon=mon)
+    return message
+
+@register_item(item_name="Blood Vial")
+def handle_blood_vial(mon: dict) -> str:
+    message = heal(percent=0.50, mon=mon)
+    return message
+
+@register_item(item_name="Stonesword Key")
+def handle_stone_sword_key(mon: dict) -> str:
+    if mon['gaol']:
+        mon['gaol'] = False
+        mon['currhp'] = mon['maxhp']
+        return "Mon released from Gaol"
+    else: return "Mon not in Gaol\0"

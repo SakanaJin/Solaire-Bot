@@ -10,6 +10,7 @@ import json
 import datetime
 import asyncio
 import typing
+import math
 
 import grickle
 
@@ -44,6 +45,7 @@ async def on_ready():
     stock_check.start()
     birthday_check.start()
     shop_refresh.start()
+    gaol_refresh.start()
     print(f"started tasks")
 
 @bot.event
@@ -76,21 +78,22 @@ async def stock_check():
     for stock in stocks:
         match stocks[stock]['favorlvl']:
             case 'hated':
-                percent_change = random.randint(-20, 2) / 100
+                percent_change = random.uniform(-0.20, 0.02)
             case 'poor':
-                percent_change = random.randint(-5, 2) / 100
-            case 'neutral':
-                percent_change = random.randint(-2, 5) / 100
+                percent_change = random.uniform(-0.05, 0.02)
+            case 'none':
+                percent_change = random.uniform(-0.02, 0.05)
             case 'favored':
-                percent_change = random.randint(-2, 15) / 100
+                percent_change = random.uniform(-0.02, 0.15)
             case 'loved':
-                percent_change = random.randint(-2, 20) / 100
+                percent_change = random.uniform(-0.02, 0.20)
         stocks[stock]['price'] += stocks[stock]['price'] * percent_change
         stocks[stock]['price'] = round(stocks[stock]['price'], 2)
         sign = ""
         if percent_change > 0:
             sign = "+"
         message = message + f"{stock}: {stocks[stock]['price']} sunlight ({sign}{round(percent_change * 100, 2)}%)\n"
+        await asyncio.sleep(1)
     with open('stocks.json', 'w') as f: # might need a lock
         json.dump(stocks, f, indent=2)
     await general.send(message)
@@ -128,6 +131,21 @@ async def shop_refresh():
     with lock and open('shop.json', 'w') as f:
         json.dump(shop_items, f, indent=2)
     await general.send("@everyone\nShop has been refreshed.")
+
+@tasks.loop(time=datetime.time(hour=11, minute=00)) #1100 utc 0600
+async def gaol_refresh():
+    with lock and open('gaol.json') as f:
+        gaols = json.load(f)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    for userid, monlist in gaols.items():
+        for mon in monlist:
+            boxes[userid][mon]['gaol'] = False
+        gaols[userid] = []
+    with lock and open('goal.json', 'w') as f:
+        json.dump(gaols, f, indent=2)
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
 
 #on message---------------------------------------------------------------------------------------------
 
@@ -748,7 +766,7 @@ async def pull(interaction):
     if chosen_boi in boxes[userid]:
         dupes += 1
     else:
-        boxes[userid][chosen_boi] = mon_to_usermon(mons[chosen_boi], lvl=1)
+        boxes[userid][chosen_boi] = mon_to_usermon(mons[chosen_boi], lvl=5)
         with lock and open('user-mons.json', 'w') as f:
             json.dump(boxes, f, indent=2)
     embeds.append(mon_to_embed(chosen_boi, boxes[userid][chosen_boi]))
@@ -959,7 +977,8 @@ async def challenge(interaction, vs: discord.User, mon: str):
         await interaction.response.send_message("Invalid Gricklemon", ephemeral=True)
         return
     enemybox = boxes[enemyid]
-    view = ChallengeView(vs, list(enemybox.keys()))
+    enemymonkeysfiltered = [key for key in enemybox.keys() if not enemybox[key]['away'] and not enemybox[key]['gaol']]
+    view = ChallengeView(vs, enemymonkeysfiltered)
     await interaction.response.send_message(f"{vs.mention}, {interaction.user.mention} has challenged you to a Gricklemon duel. Select a mon and confirm or hide in the shadows.", view=view)
     await view.wait()
     if view.confirmed:
@@ -1019,7 +1038,7 @@ async def battle(interaction, mon: str):
             chosen_boi = random.choice(list(banner_mons_legendary.keys()))
     with lock and open('battles.json') as f:
         battles = json.load(f)
-    enemylvl = random.randint(max(box[mon]['lvl'] - 10, 0), box[mon]['lvl'] + 10)
+    enemylvl = random.randint(max(box[mon]['lvl'] - 10, 1), box[mon]['lvl'] + 10)
     battles[battles['nextid']] = {userid: {mon: box[mon]}, "ai": {chosen_boi: mon_to_usermon(mons[chosen_boi], lvl=enemylvl)}, "turn": userid}
     box[mon]['away'] = True
     data[userid]['battleid'] = battles['nextid']
@@ -1033,23 +1052,45 @@ async def battle(interaction, mon: str):
         json.dump(data, f, indent=2)
     await interaction.response.send_message(f"Battle started with lvl {enemylvl} {rarity} {chosen_boi}. The battle starts with your turn.", ephemeral=True)
 
-async def end_battle(interaction: discord.Interaction, winner: str, loser: str, battles: dict, data: dict):
+async def end_battle(interaction: discord.Interaction, winnerid: str, winner: str, loser: str, battles: dict, data: dict):
     userid = str(interaction.user.id)
     battleid = str(data[userid]['battleid'])
     battle = battles[battleid]
-    loserid = [key for key in list(battle.keys()) if key != userid and key != 'turn'][0]
-    winnermon = battle[userid][winner]
+    loserid = [key for key in list(battle.keys()) if key != winnerid and key != 'turn'][0]
+    winnermon = battle[winnerid][winner]
     startlvl = winnermon['lvl']
     losermon = battle[loserid][loser]
     exp = grickle.drop_exp(winnermon, losermon)
-    losermon['gaol'] = True
+    if loserid != 'ai':
+        losermon['gaol'] = True
+        with lock and open('gaol.json') as f:
+            gaols = json.load(f)
+        gaols[loserid].append(loser)
+        with lock and open('gaol.json', 'w') as f:
+            json.dump(gaols, f, indent=2)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    if winnerid == "ai":
+        await interaction.followup.send(f"{winner} has defeated you and {loser} has been sent to Gaol", ephemeral=True)
+        boxes[loserid][loser] = losermon
+        boxes[loserid][loser]['away'] = False
+        del battles[battleid]
+        data[loserid]['battleid'] = 0
+        with lock and open('user-mons.json', 'w') as f:
+            json.dump(boxes, f, indent=2)
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        with lock and open('data.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        return
     with lock and open('gricklemon.json') as f:
         mons = json.load(f)
     grickle.process_lvls(winnermon, mons[winner], exp)
-    with lock and open('user-mons.json') as f:
-        boxes = json.load(f)
     winnermon['away'] = False
-    boxes[userid][winner] = winnermon
+    losermon['away'] = False
+    winnermon['statuses'] = []
+    losermon['statuses'] = []
+    boxes[winnerid][winner] = winnermon
     if loserid != 'ai':
         boxes[loserid][loser] = losermon
     with lock and open('user-mons.json', 'w') as f:
@@ -1064,7 +1105,7 @@ async def end_battle(interaction: discord.Interaction, winner: str, loser: str, 
     if loserid == 'ai':
         ephemeral = True
         sunlight = round(grickle.drop_sunlight(losermon), 2)
-        data[userid]['sunlight'] = round(data[userid]['sunlight'] + sunlight, 2)
+        data[winnerid]['sunlight'] = round(data[winnerid]['sunlight'] + sunlight, 2)
         message = message + f"\nGained {sunlight} Sunlight"
         drop_pool = list(active_banner['drop-pool'].keys())
         drop = random.choice(drop_pool)
@@ -1073,22 +1114,23 @@ async def end_battle(interaction: discord.Interaction, winner: str, loser: str, 
         else:
             with lock and open('user-inventories.json') as f:
                 inventories = json.load(f)
-            inventory = inventories[userid]
+            inventory = inventories[winnerid]
             if drop not in inventory:
                 inventory[drop] = active_banner['drop-pool'][drop]
             else:
                 inventory[drop] += 1
-            inventories[userid] = inventory
+            inventories[winnerid] = inventory
             with lock and open('user-inventories.json', 'w') as f:
                 json.dump(inventories, f, indent=2)
             message = message + f"\n{loser} dropped {drop}"
     del battles[battleid]
     with lock and open('battles.json', 'w') as f:
         json.dump(battles, f, indent=2)
-    data[userid]['battleid'] = 0
+    data[winnerid]['battleid'] = 0
     with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
-    await interaction.response.send_message(message, ephemeral=ephemeral)
+    embed = mon_to_embed(winner, battle[winnerid][winner])
+    await interaction.followup.send(message, embed=embed, ephemeral=ephemeral)
 
 async def battle_skill_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
     with lock and open('battles.json') as f:
@@ -1109,6 +1151,7 @@ async def battle_skill_autocomplete(interaction, current: str) -> typing.List[ap
 @app_commands.autocomplete(skill=battle_skill_autocomplete)
 async def attack(interaction, skill: str):
     """Attacks with a skill"""
+    message = ""
     userid = str(interaction.user.id)
     with lock and open('data.json') as f:
         data = json.load(f)
@@ -1123,7 +1166,6 @@ async def attack(interaction, skill: str):
         await interaction.response.send_message("WAIT YOUR TURN!!!!!!", ephemeral=True)
         return
     mon = list(battle[userid].keys())[0]
-    #start_of_turn_checks() do this tomorrow (today) -----------------------------------------------------------------------------------
     if skill not in battle[userid][mon]['skills']:
         await interaction.response.send_message("Invalid skill", ephemeral=True)
         return
@@ -1133,34 +1175,301 @@ async def attack(interaction, skill: str):
     else:
         ephemeral = False
     enemymon = list(battle[enemyid].keys())[0]
-    if round(random.random(), 2) <= grickle.hit_chance(battle[userid][mon], battle[enemyid][enemymon]):
-        damage = round(grickle.damage(battle[userid][mon], battle[enemyid][enemymon], battle[userid][mon]['skills'][skill]), 2)
-        battle[enemyid][enemymon]['currhp'] -= damage
-    else:
-        await interaction.response.send_message("Attack missed", ephemeral=ephemeral)
+    for status in battle[userid][mon]['statuses']:
+        message = message + grickle.status_hadler[status](battle[userid][mon], battle[enemyid][enemymon])
+    if battle[userid][mon]['currhp'] <= 0:
+        await interaction.response.send_message(message, ephemeral=ephemeral)
+        await end_battle(interaction, enemyid, enemymon, mon, battles, data)
+        return
+    if "is paralyzed" in message:
         battle['turn'] = enemyid
         battles[battleid] = battle
         with lock and open('battles.json', 'w') as f:
             json.dump(battles, f, indent=2)
+        await interaction.response.send_message(message, ephemeral=ephemeral)
+        if enemyid == "ai":
+            await ai_turn(interaction, enemymon, mon)
         return
-    if battle[enemyid][enemymon]['currhp'] <= 0:
-        await end_battle(interaction, mon, enemymon, battles, data)
+    if round(random.random(), 2) <= grickle.hit_chance(battle[userid][mon], battle[enemyid][enemymon]):
+        damage = round(grickle.damage(battle[userid][mon], battle[enemyid][enemymon], battle[userid][mon]['skills'][skill]), 2)
+        battle[enemyid][enemymon]['currhp'] = math.floor(battle[enemyid][enemymon]['currhp'] - damage)
+    else:
+        battle['turn'] = enemyid
+        battles[battleid] = battle
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        await interaction.response.send_message("Attack missed", ephemeral=ephemeral)
+        if enemyid == "ai":
+            await ai_turn(interaction, enemymon, mon)
         return
     status_msg = ''
     for status in battle[userid][mon]['skills'][skill]['statuses']:
-        if round(random.random(), 2) <= grickle.status_proc_chance(battle[userid], battle[enemyid]):
+        if round(random.random(), 2) <= grickle.status_proc_chance(battle[userid][mon], battle[enemyid][enemymon]) and status not in battle[enemyid][enemymon]['statuses']:
             status_msg = status_msg + f"{status} "
             battle[enemyid][enemymon]['statuses'].append(status)
-    if len(battle[enemyid][enemymon]['statuses']) == 0:
-        message = f"Used {skill} for {damage} damage {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
+    if status_msg == '':
+        message = message + f"Used {skill} for {damage} damage {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
     else:
-        message = f"Used {skill} for {damage} and applied statuses: {status_msg} {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
+        message = message + f"Used {skill} for {damage} and applied statuses: {status_msg} {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
+    if battle[enemyid][enemymon]['currhp'] <= 0:
+        await interaction.response.send_message(message, ephemeral=ephemeral)
+        await end_battle(interaction, userid, mon, enemymon, battles, data)
+        return
     battle['turn'] = enemyid
     battles[battleid] = battle
     with lock and open('battles.json', 'w') as f:
         json.dump(battles, f, indent=2)
     await interaction.response.send_message(message, ephemeral=ephemeral)
+    if enemyid == "ai":
+        await ai_turn(interaction, enemymon, mon)
 
+async def useable_item_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('user-inventories.json') as f:
+        inventories = json.load(f)
+    with lock and open('items.json') as f:
+        items = json.load(f)
+    inventory = inventories[str(interaction.user.id)]
+    choices = []
+    for item in inventory:
+        if current.lower() in item.lower() and items[item]['consumable']:
+            choices.append(app_commands.Choice(name=item, value=item))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(item=useable_item_autocomplete)
+async def useitem(interaction, item: str):
+    """Uses an item"""
+    userid = str(interaction.user.id)
+    message = ""
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    with lock and open('user-inventories.json') as f:
+        inventories = json.load(f)
+    with lock and open('items.json') as f:
+        items = json.load(f)
+    inventory = inventories[userid]
+    if item not in inventory or not items[item]['consumable']:
+        await interaction.response.send_message("Invalid item", ephemeral=True)
+        return
+    battleid = str(data[userid]['battleid'])
+    if battleid == "0" or items[item]['nobattleonly']:
+        with lock and open('user-mons.json') as f:
+            boxes = json.load(f)
+        monkeysfiltered = [key for key in boxes[userid] if not boxes[userid][key]['away'] or not boxes[userid][key]['gaol']]
+        view = ChallengeView(interaction.user, monkeysfiltered)
+        await interaction.response.send_message("Pick a Gricklemon to use item on", view=view, ephemeral=True)
+        await view.wait()
+        if view.confirmed:
+            message = grickle.item_handler[item](boxes[userid][view.selected_value])
+            if '\0' in message:
+                await interaction.followup.send(message, ephemeral=True)
+                return
+            inventory[item] -= 1
+            if inventory[item] == 0:
+                del inventory[item]
+            inventories[userid] = inventory
+            with lock and open('user-inventories.json', 'w') as f:
+                json.dump(inventories, f, indent=2)
+            with lock and open('user-mons.json', 'w') as f:
+                json.dump(boxes, f, indent=2)
+            await interaction.followup.send(message, embed=mon_to_embed(view.selected_value, boxes[userid][view.selected_value]), ephemeral=True)
+        else:
+            await interaction.followup.send("Failed to select in time", ephemeral=True)
+        try:
+            msg = await interaction.original_response()
+            await msg.delete()
+        except discord.NotFound():
+            pass
+        return
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    battle = battles[battleid]
+    mon = list(battle[userid].keys())[0]
+    enemyid = [key for key in battle if key != userid and key != 'turn'][0]
+    enemymon = list(battle[enemyid].keys())[0]
+    ephemeral = False
+    if enemyid == 'ai':
+        ephemeral = True
+    for status in battle[userid][mon]['statuses']:
+        message = message + grickle.status_hadler[status](battle[userid][mon], battle[enemyid][enemymon])
+    if battle[userid][mon]['currhp'] <= 0:
+        await interaction.response.send_message(message, ephemeral=ephemeral)
+        await end_battle(interaction, enemyid, enemymon, mon, battles, data)
+        return
+    if "is paralyzed" in message:
+        battle['turn'] = enemyid
+        battles[battleid] = battle
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        await interaction.response.send_message(message, ephemeral=ephemeral)
+        if enemyid == "ai":
+            await ai_turn(interaction, enemymon, mon)
+        return
+    message = grickle.item_handler[item](battle[userid][mon])
+    inventory[item] -= 1
+    if inventory[item] == 0:
+        del inventory[item]
+    inventories[userid] = inventory
+    with lock and open('user-inventories.json', 'w') as f:
+        json.dump(inventories, f, indent=2)
+    battle['turn'] = enemyid
+    battles[battleid] = battle
+    with lock and open('battles.json', 'w') as f:
+        json.dump(battles, f, indent=2)
+    await interaction.response.send_message(message, ephemeral=ephemeral)
+    if enemyid == "ai":
+        await ai_turn(interaction, enemymon, mon)
+
+@bot.tree.command(guild=guild)
+async def run(interaction):
+    """Try to flee battle"""
+    message = ''
+    userid = str(interaction.user.id)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    battleid = str(data[userid]['battleid'])
+    if battleid == '0':
+        await interaction.response.send_message("Cant run from a battle you're not in.", ephemeral=True)
+        return
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    battle = battles[battleid]
+    if battle['turn'] != userid:
+        await interaction.response.send_message("Wait your turn to flee coward", ephemeral=True)
+    mon = list(battle[userid].keys())[0]
+    enemyid = [key for key in battle if key != userid and key != 'turn'][0]
+    enemymon = list(battle[enemyid].keys())[0]
+    ephemeral = False
+    if enemyid == 'ai':
+        ephemeral = True
+    for status in battle[userid][mon]['statuses']:
+        message = message + grickle.status_hadler[status](battle[userid][mon], battle[enemyid][enemymon])
+    if battle[userid][mon]['currhp'] <= 0:
+        await interaction.response.send_message(message, ephemeral=ephemeral)
+        await end_battle(interaction, enemyid, enemymon, mon, battles, data)
+        return
+    if "is paralyzed" in message:
+        battle['turn'] = enemyid
+        battles[battleid] = battle
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        await interaction.response.send_message(message, ephemeral=ephemeral)
+        if enemyid == "ai":
+            await ai_turn(interaction, enemymon, mon)
+        return
+    if random.random() >= grickle.flee_chance(battle[userid][mon], battle[enemyid][enemymon]):
+        del battles[battleid]
+        data[userid]['battleid'] = 0
+        if enemyid != 'ai':
+            data[userid]['battleid'] = 0
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        with lock and open('data.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        await interaction.response.send_message("Fled from battle", ephemeral=ephemeral)
+        return
+    battle['turn'] = enemyid
+    battles[battleid] = battle
+    with lock and open('battles.json', 'w') as f:
+        json.dump(battles, f, indent=2)
+    await interaction.response.send_message("Failed to flee", ephemeral=ephemeral)
+    if enemyid == "ai":
+        await ai_turn(interaction, enemymon, mon)
+
+async def ai_turn(interaction: discord.Interaction, aimon: str, enemymon: str):
+    enemyid = str(interaction.user.id)
+    userid = 'ai'
+    message = ''
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    battleid = str(data[enemyid]['battleid'])
+    battle = battles[battleid]
+    for status in battle[userid][aimon]['statuses']:
+        message = message + grickle.status_hadler[status](battle[userid][aimon], battle[enemyid][enemymon])
+    if battle[userid][aimon]['currhp'] <= 0:
+        await interaction.followup.send(message, ephemeral=True)
+        await end_battle(interaction, userid, enemymon, aimon, battles, data)
+        return
+    if "is paralyzed" in message:
+        battle['turn'] = enemyid
+        battles[battleid] = battle
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        await interaction.followup.send(message, ephemeral=True)
+        return
+    skills = list(battle['ai'][aimon]['skills'].keys())
+    skill = random.choice(skills)
+    if round(random.random(), 2) <= grickle.hit_chance(battle[userid][aimon], battle[enemyid][enemymon]):
+        damage = round(grickle.damage(battle[userid][aimon], battle[enemyid][enemymon], battle[userid][aimon]['skills'][skill]), 2)
+        battle[enemyid][enemymon]['currhp'] = math.floor(battle[enemyid][enemymon]['currhp'] - damage)
+    else:
+        await interaction.followup.send("Attack missed", ephemeral=True)
+        battle['turn'] = enemyid
+        battles[battleid] = battle
+        with lock and open('battles.json', 'w') as f:
+            json.dump(battles, f, indent=2)
+        return
+    status_msg = ''
+    for status in battle[userid][aimon]['skills'][skill]['statuses']:
+        if round(random.random(), 2) <= grickle.status_proc_chance(battle[userid][aimon], battle[enemyid][enemymon]) and status not in battle[enemyid][enemymon]['statuses']:
+            status_msg = status_msg + f"{status} "
+            battle[enemyid][enemymon]['statuses'].append(status)
+    if status_msg == '':
+        message = message + f"Used {skill} for {damage} damage {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
+    else:
+        message = message + f"Used {skill} for {damage} and applied statuses: {status_msg} {enemymon} hp remaining: {battle[enemyid][enemymon]['currhp']}"
+    if battle[enemyid][enemymon]['currhp'] <= 0:
+        await interaction.followup.send(message, ephemeral=True)
+        await end_battle(interaction, "ai", aimon, enemymon, battles, data)
+        return
+    battle['turn'] = enemyid
+    battles[battleid] = battle
+    with lock and open('battles.json', 'w') as f:
+        json.dump(battles, f, indent=2)
+        await interaction.followup.send(message, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+async def battleinfo(interaction):
+    """Shows current battle information"""
+    userid = str(interaction.user.id)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    battleid = str(data[userid]['battleid'])
+    if battleid == "0":
+        await interaction.response.send_message("No battle to get info from bozo", ephemeral=True)
+        return
+    battle = battles[battleid]
+    embeds = [mon_to_embed(list(battle[user].keys())[0], battle[user][list(battle[user].keys())[0]]) for user in battle if user != "turn"]
+    if battle['turn'] == 'ai':
+        user = 'ai'
+    else:
+        user = await interaction.guild.fetch_member(battle['turn'])
+    await interaction.response.send_message(f"turn: {user}", embeds=embeds, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+async def gaol(interaction):
+    """Shows the Gaol"""
+    userid = str(interaction.user.id)
+    message = ""
+    with lock and open('gaol.json') as f:
+        gaols = json.load(f)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    for mon in gaols[userid]:
+        if not boxes[userid][mon]['gaol']:
+            gaols[userid].remove(mon)
+        message = message + f"{mon}\n"
+    with lock and open('gaol.json', 'w') as f:
+        json.dump(gaols, f, indent=2)
+    if len(gaols[userid]) == 0 or message == "":
+        await interaction.response.send_message("Gaol Empty", ephemeral=True)
+        return
+    await interaction.response.send_message(message, ephemeral=True)
+ 
 #running utility-----------------------------------------------------------------------------------------------
 
 def main():
