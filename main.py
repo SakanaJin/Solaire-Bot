@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import os
+import shutil
 import random
 import requests
 from bs4 import BeautifulSoup
@@ -19,6 +20,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 CID = os.getenv('CID')
 GID = os.getenv('GID')
 ADMIN: int = int(os.getenv('ADMIN'))
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -31,22 +33,149 @@ guild = discord.Object(id=GID)
 headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "If only I could be so grossly incandescent", "author": "Solaire"}, {"quote": "Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father", "author": "Solaire"}, {"quote": "You really are fond of chatting with me, aren't you? If I didn't know better, I'd think you had feelings for me! Ha ha ha", "author": "Solaire"}, {"quote": "I am Solaire of Astora, an adherent of the Lord of Sunlight. Now that I am Undead, I have come to this great land, the birthplace of Lord Gwyn, to seek my very own sun", "author": "Solaire"}, {"quote": "We are amidst strange beings, in a strange land. The flow of time itself is convoluted; with heroes centuries old phasing in and out", "author": "Solaire"}]
+critical_files = ['stocks.json', 'skills.json', 'items.json', 'gricklemon.json', 'boss-mons.json', 'banners.json']
+gen_files = ['user-stocks.json', 'user-skills.json', 'user-mons.json', 'user-inventories.json', 'shop.json', 'quotes.json', 'gaol.json', 'data.json', 'battles.json']
 stock_favorlvls = ['hated', 'poor', 'none', 'favored', 'loved']
 rarity_colors = {"Common": 0xf7faf8, "Uncommon": 0x14c744, "Rare": 0x1791e8, "Legendary": 0x7217e8, "Incandescent": 0xfcb632, "Key-Item": 0x068067, "Monument": 0xfcf914}
 lock = asyncio.Lock()
+
+#file generation-------------------------------------------------------------------------------------
+
+file_gen_handlers = {}
+
+async def create_backup(directory: list) -> bool:
+    try:
+        if not os.path.exists("backup"):
+            os.mkdir("backup")
+        for file in directory:
+            if file.endswith(".json"):
+                shutil.copy2(file, "backup")
+        return True
+    except:
+        return False
+
+def register_file_generator(file_name):
+    def decorator(func):
+        file_gen_handlers[file_name] = func
+        return func
+    return decorator
+
+async def id_dict_files(filename: str) -> None:
+    guild = await bot.fetch_guild(GID)
+    dict_of_ids = {}
+    for user in guild.members:
+        dict_of_ids[str(user.id)] = {}
+    with lock and open(filename, 'w') as f:
+        json.dump(filename, f, indent=2)
+
+@register_file_generator(file_name="data.json")
+async def handle_gen_data(file: str) -> None:
+    guild = await bot.fetch_guild(GID)
+    data = {}
+    for user in guild.members:
+        data[str(user.id)] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
+    with lock and open(file, 'w') as f:
+        json.dump(data, f, indent=2)
+
+@register_file_generator(file_name="battles.json")
+async def handle_gen_battles(file: str) -> None:
+    battles = {"nextid": 1}
+    with lock and open(file, 'w') as f:
+        json.dump(battles, f, indent=2)
+
+@register_file_generator(file_name="gaol.json")
+async def handle_gen_gaol(file: str) -> None:
+    guild = await bot.fetch_guild(GID)
+    gaols = {}
+    for user in guild.members:
+        gaols[str(user.id)] = []
+    with lock and open(file, 'w') as f:
+        json.dump(gaols, f, indent=2)
+
+@register_file_generator(file_name="quotes.json")
+async def handle_gen_quotes(file: str) -> None:
+    with lock and open(file, 'w') as f:
+        json.dump(solaire_quotes, f, indent=2)
+
+@register_file_generator(file_name="shop.json")
+async def handle_gen_shop(file: str) -> None:
+    await shop_refresh()
+
+@register_file_generator(file_name="user-inventories.json")
+async def handle_gen_userinventories(file: str) -> None:
+    await id_dict_files(file)
+
+@register_file_generator(file_name="user-mons.json")
+async def handle_gen_usermons(file: str) -> None:
+    await id_dict_files(file)
+
+@register_file_generator(file_name="user-skills.json")
+async def handle_gen_userskills(file: str) -> None:
+    await id_dict_files(file)
+
+@register_file_generator(file_name="user-stocks.json")
+async def handle_gen_userstocks(file: str) -> None:
+    await id_dict_files(file)
 
 #events-----------------------------------------------------------------------------------------------
 
 @bot.event
 async def on_ready():
-    print(f"{bot.user} has connected to Discord")
-    global general
-    general = await bot.fetch_channel(CID)
+    async with lock:
+        print(f"{bot.user} has connected to Discord")
+        global general
+        general = await bot.fetch_channel(CID)
+        print("Checking critical files\n")
+        files = os.listdir()
+        for file in critical_files:
+            if file not in files:
+                print(f"{file} not found in directory, creating backup and attempting to download from github\n")
+                backedup = await create_backup(files)
+                if backedup:
+                    print("backup created")
+                else:
+                    print("failed to create backup terminating session")
+                    await bot.close()
+                    return
+                try:
+                    response = requests.get(f"https://raw.githubusercontent.com/SakanaJin/Solaire-Bot/refs/heads/main/{file}") # this will only work if the repository is public
+                    response.raise_for_status()
+                    with lock and open(file, 'wb') as f:
+                        f.write(response.content)
+                    print(f"{file} created")
+                except requests.HTTPError as e:
+                    print(f"{e} failed to get {file} from github terminating session")
+                    await bot.close()
+                    return
+            else: print(f"{file} found in directory")
+        print("Critical file check complete\n")
+        print("Chekcing user data files\n")
+        touched = False
+        for file in gen_files:
+            if file not in files and not touched:
+                print(f"{file} not found in directory, creating backup and regenerating all data\nWARNING THIS WILL RESET ALL DATA AFTER STORING IT IN BACKUP ATTENTION REQUIRED TO RESTORE DATA\n")
+                touched = True
+                backedup = await create_backup(files)
+                if backedup:
+                    print("backup created")
+                    break
+                else:
+                    print("failed to create backup terminating session")
+                    await bot.close()
+                    return
+            else:
+                print(f"{file} found in directory")
+        if touched:
+            for file in gen_files:
+                file_gen_handlers[file](file)
+                print(f"Generated {file}")
+        print("User data file check complete\n")
+    print("Starting tasks")        
     stock_check.start()
     birthday_check.start()
     shop_refresh.start()
     gaol_refresh.start()
-    print(f"started tasks")
+    print("Started tasks")
 
 @bot.event
 async def on_member_join(member):

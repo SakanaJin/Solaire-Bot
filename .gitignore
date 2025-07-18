@@ -107,3 +107,6 @@ gaol.json
 
 #testing py files
 test.py
+
+#backup folder
+backup/
