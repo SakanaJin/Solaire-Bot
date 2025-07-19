@@ -22,7 +22,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 CID = os.getenv('CID')
 GID = os.getenv('GID')
 ADMIN: int = int(os.getenv('ADMIN'))
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -71,14 +70,14 @@ async def id_dict_files(filename: str) -> None:
     for user in guild.members:
         dict_of_ids[str(user.id)] = {}
     with lock and open(filename, 'w') as f:
-        json.dump(filename, f, indent=2)
+        json.dump(dict_of_ids, f, indent=2)
 
 @register_file_generator(file_name="data.json")
 async def handle_gen_data(file: str) -> None:
     guild = await bot.fetch_guild(GID)
     data = {}
-    print(guild.members)
     for user in guild.members:
+        print(user.id)
         data[str(user.id)] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
     with lock and open(file, 'w') as f:
         json.dump(data, f, indent=2)
