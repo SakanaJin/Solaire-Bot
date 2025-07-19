@@ -75,6 +75,7 @@ async def id_dict_files(filename: str) -> None:
 @register_file_generator(file_name="data.json")
 async def handle_gen_data(file: str) -> None:
     server = await bot.fetch_guild(GID)
+    await server.chunk()
     data = {}
     for user in server.members:
         print(user.id)
