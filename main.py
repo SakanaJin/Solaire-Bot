@@ -77,6 +77,7 @@ async def id_dict_files(filename: str) -> None:
 async def handle_gen_data(file: str) -> None:
     guild = await bot.fetch_guild(GID)
     data = {}
+    print(guild.members)
     for user in guild.members:
         data[str(user.id)] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
     with lock and open(file, 'w') as f:
@@ -126,54 +127,53 @@ async def handle_gen_userstocks(file: str) -> None:
 
 @bot.event
 async def on_ready():
-    async with lock:
-        print(f"{bot.user} has connected to Discord")
-        global general
-        general = await bot.fetch_channel(CID)
-        print("Checking critical files\n")
-        files = os.listdir()
-        for file in critical_files:
-            if file not in files:
-                print(f"{file} not found in directory, creating backup and attempting to download from github\n")
-                backedup = await create_backup(files)
-                if backedup:
-                    print("backup created")
-                else:
-                    print("failed to create backup terminating session")
-                    await bot.close()
-                    return
-                try:
-                    response = requests.get(f"https://raw.githubusercontent.com/SakanaJin/Solaire-Bot/refs/heads/main/{file}") # this will only work if the repository is public
-                    response.raise_for_status()
-                    with lock and open(file, 'wb') as f:
-                        f.write(response.content)
-                    print(f"{file} created")
-                except requests.HTTPError as e:
-                    print(f"{e} failed to get {file} from github terminating session")
-                    await bot.close()
-                    return
-            else: print(f"{file} found in directory")
-        print("Critical file check complete\n")
-        print("Chekcing user data files\n")
-        touched = False
-        for file in gen_files:
-            if file not in files and not touched:
-                print(f"{file} not found in directory, creating backup and regenerating all data\nWARNING THIS WILL RESET ALL DATA AFTER STORING IT IN BACKUP ATTENTION REQUIRED TO RESTORE DATA\n")
-                touched = True
-                backedup = await create_backup(files)
-                if backedup:
-                    print("backup created")
-                    break
-                else:
-                    print("failed to create backup terminating session")
-                    await bot.close()
-                    return
+    print(f"{bot.user} has connected to Discord")
+    global general
+    general = await bot.fetch_channel(CID)
+    print("Checking critical files\n")
+    files = os.listdir()
+    for file in critical_files:
+        if file not in files:
+            print(f"{file} not found in directory, creating backup and attempting to download from github\n")
+            backedup = await create_backup(files)
+            if backedup:
+                print("backup created")
             else:
-                print(f"{file} found in directory")
-        if touched:
-            for file in gen_files:
-                await file_gen_handlers[file](file)
-                print(f"Generated {file}")
+                print("failed to create backup terminating session")
+                await bot.close()
+                return
+            try:
+                response = requests.get(f"https://raw.githubusercontent.com/SakanaJin/Solaire-Bot/refs/heads/main/{file}") # this will only work if the repository is public
+                response.raise_for_status()
+                with lock and open(file, 'wb') as f:
+                    f.write(response.content)
+                print(f"{file} created")
+            except requests.HTTPError as e:
+                print(f"{e} failed to get {file} from github terminating session")
+                await bot.close()
+                return
+        else: print(f"{file} found in directory")
+    print("Critical file check complete\n")
+    print("Chekcing user data files\n")
+    touched = False
+    for file in gen_files:
+        if file not in files and not touched:
+            print(f"{file} not found in directory, creating backup and regenerating all data\nWARNING THIS WILL RESET ALL DATA AFTER STORING IT IN BACKUP ATTENTION REQUIRED TO RESTORE DATA\n")
+            touched = True
+            backedup = await create_backup(files)
+            if backedup:
+                print("backup created")
+                break
+            else:
+                print("failed to create backup terminating session")
+                await bot.close()
+                return
+        else:
+            print(f"{file} found in directory")
+    if touched:
+        for file in gen_files:
+            await file_gen_handlers[file](file)
+            print(f"Generated {file}")
         print("User data file check complete\n")
     print("Starting tasks")        
     stock_check.start()
