@@ -20,7 +20,6 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 CID = os.getenv('CID')
 GID = os.getenv('GID')
 ADMIN: int = int(os.getenv('ADMIN'))
-GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
 intents = discord.Intents.default()
 intents.message_content = True
