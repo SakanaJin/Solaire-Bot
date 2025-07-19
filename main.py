@@ -68,7 +68,7 @@ async def id_dict_files(filename: str) -> None:
     server = await bot.fetch_guild(GID)
     dict_of_ids = {}
     for user in server.members:
-        dict_of_ids[str(user.id)] = {}
+        dict_of_ids[user.id] = {}
     with lock and open(filename, 'w') as f:
         json.dump(dict_of_ids, f, indent=2)
 
@@ -78,7 +78,7 @@ async def handle_gen_data(file: str) -> None:
     data = {}
     for user in server.members:
         print(user.id)
-        data[str(user.id)] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
+        data[user.id] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
     with lock and open(file, 'w') as f:
         json.dump(data, f, indent=2)
 
@@ -93,7 +93,7 @@ async def handle_gen_gaol(file: str) -> None:
     server = await bot.fetch_guild(GID)
     gaols = {}
     for user in server.members:
-        gaols[str(user.id)] = []
+        gaols[user.id] = []
     with lock and open(file, 'w') as f:
         json.dump(gaols, f, indent=2)
 
