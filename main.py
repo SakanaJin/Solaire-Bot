@@ -75,10 +75,8 @@ async def id_dict_files(filename: str) -> None:
 @register_file_generator(file_name="data.json")
 async def handle_gen_data(file: str) -> None:
     server = await bot.fetch_guild(GID)
-    await server.chunk()
     data = {}
     for user in server.members:
-        print(user.id)
         data[user.id] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
     with lock and open(file, 'w') as f:
         json.dump(data, f, indent=2)
