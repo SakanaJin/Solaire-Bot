@@ -9,8 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import datetime
-from zoneinfo import ZoneInfo
-from tzlocal import get_localzone_name
 import asyncio
 import typing
 import math
@@ -39,15 +37,14 @@ gen_files = ['user-stocks.json', 'user-skills.json', 'user-mons.json', 'user-inv
 stock_favorlvls = ['hated', 'poor', 'none', 'favored', 'loved']
 rarity_colors = {"Common": 0xf7faf8, "Uncommon": 0x14c744, "Rare": 0x1791e8, "Legendary": 0x7217e8, "Incandescent": 0xfcb632, "Key-Item": 0x068067, "Monument": 0xfcf914}
 bot_tasks = {}
-zone_name = get_localzone_name()
-local_timezone = ZoneInfo(zone_name)
 lock = asyncio.Lock()
 
 #file generation-------------------------------------------------------------------------------------
 
 file_gen_handlers = {}
 
-async def create_backup(directory: list) -> bool:
+async def create_backup() -> bool:
+    directory = os.listdir()
     try:
         if not os.path.exists("backup"):
             os.mkdir("backup")
@@ -64,62 +61,59 @@ def register_file_generator(file_name):
         return func
     return decorator
 
-async def id_dict_files(filename: str) -> None:
-    server = await bot.fetch_guild(GID)
+async def id_dict_files(file: str, members) -> None:
     dict_of_ids = {}
-    for user in server.members:
-        dict_of_ids[user.id] = {}
-    with lock and open(filename, 'w') as f:
+    for user in members:
+        dict_of_ids[str(user.id)] = {}
+    with lock and open(file, 'w') as f:
         json.dump(dict_of_ids, f, indent=2)
 
 @register_file_generator(file_name="data.json")
-async def handle_gen_data(file: str) -> None:
-    server = await bot.fetch_guild(GID)
+async def handle_gen_data(file: str, members, **kwargs) -> None:
     data = {}
-    for user in server.members:
-        data[user.id] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
+    for user in members:
+        data[str(user.id)] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
     with lock and open(file, 'w') as f:
         json.dump(data, f, indent=2)
 
 @register_file_generator(file_name="battles.json")
-async def handle_gen_battles(file: str) -> None:
+async def handle_gen_battles(file: str, **kwargs) -> None:
     battles = {"nextid": 1}
     with lock and open(file, 'w') as f:
         json.dump(battles, f, indent=2)
 
 @register_file_generator(file_name="gaol.json")
-async def handle_gen_gaol(file: str) -> None:
-    server = await bot.fetch_guild(GID)
+async def handle_gen_gaol(file: str, members, **kwargs) -> None:
     gaols = {}
-    for user in server.members:
-        gaols[user.id] = []
+    for user in members:
+        gaols[str(user.id)] = []
     with lock and open(file, 'w') as f:
         json.dump(gaols, f, indent=2)
 
 @register_file_generator(file_name="quotes.json")
-async def handle_gen_quotes(file: str) -> None:
+async def handle_gen_quotes(file: str, **kwargs) -> None:
     with lock and open(file, 'w') as f:
         json.dump(solaire_quotes, f, indent=2)
 
 @register_file_generator(file_name="shop.json")
-async def handle_gen_shop(file: str) -> None:
+async def handle_gen_shop(file: str, **kwargs) -> None:
     await shop_refresh()
 
 @register_file_generator(file_name="user-inventories.json")
-async def handle_gen_userinventories(file: str) -> None:
-    await id_dict_files(file)
+async def handle_gen_userinventories(file: str, members, **kwargs) -> None:
+    await id_dict_files(file=file, members=members)
 
 @register_file_generator(file_name="user-mons.json")
-async def handle_gen_usermons(file: str) -> None:
-    await id_dict_files(file)
+async def handle_gen_usermons(file: str, members, **kwargs) -> None:
+    await id_dict_files(file=file, members=members)
 
 @register_file_generator(file_name="user-skills.json")
-async def handle_gen_userskills(file: str) -> None:
-    await id_dict_files(file)
+async def handle_gen_userskills(file: str, members, **kwargs) -> None:
+    await id_dict_files(file=file, members=members)
 
 @register_file_generator(file_name="user-stocks.json")
-async def handle_gen_userstocks(file: str) -> None:
-    await id_dict_files(file)
+async def handle_gen_userstocks(file: str, members, **kwargs) -> None:
+    await id_dict_files(file=file, members=members)
 
 #events-----------------------------------------------------------------------------------------------
 
@@ -128,6 +122,7 @@ async def on_ready():
     print(f"{bot.user} has connected to Discord")
     global general
     general = await bot.fetch_channel(CID)
+    admin = await bot.fetch_user(ADMIN)
     print("Checking critical files\n")
     files = os.listdir()
     for file in critical_files:
@@ -156,23 +151,12 @@ async def on_ready():
     touched = False
     for file in gen_files:
         if file not in files and not touched:
-            print(f"{file} not found in directory, creating backup and regenerating all data\nWARNING THIS WILL RESET ALL DATA AFTER STORING IT IN BACKUP ATTENTION REQUIRED TO RESTORE DATA\n")
+            print(f"{file} not found in directory, data reset reccomended")
+            await admin.send(f"{file} not found in directory use '/generatedatafiles' to create a back up and generate all the data files")
             touched = True
-            backedup = await create_backup(files)
-            if backedup:
-                print("backup created")
-                break
-            else:
-                print("failed to create backup terminating session")
-                await bot.close()
-                return
         else:
             print(f"{file} found in directory")
-    if touched:
-        for file in gen_files:
-            await file_gen_handlers[file](file)
-            print(f"Generated {file}")
-        print("User data file check complete\n")
+    print("User data file check complete\n")
     print("Starting tasks")        
     stock_check.start()
     bot_tasks['Stock Report'] = stock_check
@@ -195,7 +179,7 @@ async def on_member_join(member):
 
 #tasks--------------------------------------------------------------------------------------------------
 
-@tasks.loop(time=datetime.time(hour=10, minute=0, tzinfo=local_timezone)) #1000 server's local timezone
+@tasks.loop(time=datetime.time(hour=15, minute=0)) #1000 cdt -> 1500 utc
 async def birthday_check():
     with lock and open('data.json') as f:
         data = json.load(f)
@@ -203,7 +187,7 @@ async def birthday_check():
         if data[userid]['birthday'] == str(datetime.date.today().strftime("%m-%d")):
             await general.send(f"Ahh, @everyone... Today is no ordinary day—it is a day of radiance! A day to honor you, a most noble and unwavering soul. Happy birthday, brave {data[userid]['name']}! With each passing year, your light grows stronger, shining boldly even through the deepest dark. May your journey ahead be filled with jolly cooperation, hearty laughter, and the warmth of the ever-glorious sun! So come—raise your arms high, and let us rejoice! Praise it! Praise the Sun! ☀️")
 
-@tasks.loop(time=datetime.time(hour=12, minute=0, tzinfo=local_timezone)) #1200 server's local timezone
+@tasks.loop(time=datetime.time(hour=17, minute=0)) #1200 cdt -> 1700 utc
 async def stock_check():
     message = f"@everyone\nSunlight stock market report - {datetime.date.today()}\n"
     with open('stocks.json') as f: # might need a lock
@@ -234,7 +218,7 @@ async def stock_check():
         json.dump(stocks, f, indent=2)
     await general.send(message)
 
-@tasks.loop(time=datetime.time(hour=12, minute=30, tzinfo=local_timezone)) #1230 server's local timezone
+@tasks.loop(time=datetime.time(hour=17, minute=30)) #1230 cdt -> 1730 utc
 async def shop_refresh():
     with lock and open('items.json') as f:
         items = json.load(f)
@@ -267,7 +251,7 @@ async def shop_refresh():
     with lock and open('shop.json', 'w') as f:
         json.dump(shop_items, f, indent=2)
 
-@tasks.loop(time=datetime.time(hour=6, minute=0, tzinfo=local_timezone)) #0600 server's local timezone
+@tasks.loop(time=datetime.time(hour=11, minute=0)) #0600 cdt -> 1100 utc
 async def gaol_refresh():
     with lock and open('gaol.json') as f:
         gaols = json.load(f)
@@ -305,9 +289,23 @@ async def incfuck(author):
 #commands--------------------------------------------------------------------------------------------------
 
 @bot.tree.command(guild=guild)
+async def generatedatafiles(interaction):
+    """Creates a backup then generates / regenerates data files"""
+    if interaction.user.id != ADMIN:
+        await interaction.response.send_message("Admin only", ephemeral=True)
+        return
+    backedup = await create_backup()
+    if not backedup:
+        await interaction.response.send_message("Failed to create backup terminating process", ephemeral=True)
+        return
+    for file in gen_files:
+        await file_gen_handlers[file](file=file, members=interaction.guild.members)
+    await interaction.response.send_message("Data reset you can find any of the old data in the ./backups directory", ephemeral=True)
+
+@bot.tree.command(guild=guild)
 async def schedule(interaction):
     """Shows scheduled tasks"""
-    message = f"timezone: {zone_name}\n"
+    message = f"timezone: utc (subtract 5 hours for cdt)\n"
     for taskname, task in bot_tasks.items():
         next_run = task.next_iteration
         message += f"{taskname}: {next_run.strftime('%m %d, %H:%M')}\n"
