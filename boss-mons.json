@@ -1,0 +1,49 @@
+{
+  "Testboss": {
+    "rarity": "Incandescent",
+    "banner": "Normal",
+    "maxhp": 10000,
+    "currhp": 10000,
+    "lvl": 100,
+    "type": "Fire",
+    "key": "Test Key",
+    "monument": {
+      "Test Monument": {
+        "rarity": "Monument",
+        "banner": "Normal",
+        "description": "Ayy congrats on beating the Test Boss frfr"
+      }
+    },
+    "stats": {
+      "vit": 200,
+      "str": 200,
+      "dex": 200,
+      "int": 200,
+      "fth": 200,
+      "adp": 200,
+      "arc": 200,
+      "res": 200,
+      "def": 200
+    },
+    "description": "This is a test boss",
+    "entrancemsg": "Test Boss will eat your booty now start your turn",
+    "equiped": {},
+    "statuses": [],
+    "skills": {
+      "Skilltest": {
+        "basedmg": 100,
+        "rarity": "Incandescent",
+        "description": "This skill does some testing",
+        "scaling": {
+          "str": "S",
+          "dex": "S",
+          "int": "S",
+          "fth": "S",
+          "arc": "S"
+        },
+        "statuses": [],
+        "equiped": true
+      }
+    }
+  }
+}

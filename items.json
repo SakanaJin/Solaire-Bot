@@ -46,5 +46,13 @@
     "equipable": false,
     "nobattleonly": true,
     "description": "Breaks one Gricklemon out of Gaol"
+  },
+  "Test Key": {
+    "rarity": "Key-Item",
+    "price": 0,
+    "consumable": false,
+    "equipable": false,
+    "nobattleonly": true,
+    "description": "Gives the right to challenge Test Boss"
   }
 }

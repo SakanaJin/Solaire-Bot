@@ -68,5 +68,19 @@
       "arc": "S"
     },
     "statuses": []
+  },
+  "Murder": {
+    "banner": "Normal",
+    "basedmg": 777,
+    "rarity": "Legendary",
+    "description": "Literally just murder",
+    "scaling": {
+      "str": "S",
+      "dex": "S",
+      "int": "S",
+      "fth": "S",
+      "arc": "S"
+    },
+    "statuses": ["Poison", "Paralysis"]
   }
 }

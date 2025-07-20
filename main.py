@@ -33,7 +33,7 @@ headsortails = ["heads", "tails"]
 headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 solaire_quotes = [{"quote": "Praise the sun!", "author": "Solaire"}, {"quote": "If only I could be so grossly incandescent", "author": "Solaire"}, {"quote": "Oh, hello there. I will stay behind, to gaze at the sun. The sun is a wondrous body. Like a magnificent father", "author": "Solaire"}, {"quote": "You really are fond of chatting with me, aren't you? If I didn't know better, I'd think you had feelings for me! Ha ha ha", "author": "Solaire"}, {"quote": "I am Solaire of Astora, an adherent of the Lord of Sunlight. Now that I am Undead, I have come to this great land, the birthplace of Lord Gwyn, to seek my very own sun", "author": "Solaire"}, {"quote": "We are amidst strange beings, in a strange land. The flow of time itself is convoluted; with heroes centuries old phasing in and out", "author": "Solaire"}]
 critical_files = ['stocks.json', 'skills.json', 'items.json', 'gricklemon.json', 'boss-mons.json', 'banners.json']
-gen_files = ['user-stocks.json', 'user-skills.json', 'user-mons.json', 'user-inventories.json', 'shop.json', 'quotes.json', 'gaol.json', 'data.json', 'battles.json']
+gen_files = ['user-monuments.json', 'dungeon.json', 'user-stocks.json', 'user-skills.json', 'user-mons.json', 'user-inventories.json', 'shop.json', 'quotes.json', 'gaol.json', 'data.json', 'battles.json']
 stock_favorlvls = ['hated', 'poor', 'none', 'favored', 'loved']
 rarity_colors = {"Common": 0xf7faf8, "Uncommon": 0x14c744, "Rare": 0x1791e8, "Legendary": 0x7217e8, "Incandescent": 0xfcb632, "Key-Item": 0x068067, "Monument": 0xfcf914}
 bot_tasks = {}
@@ -49,7 +49,7 @@ async def create_backup() -> bool:
         if not os.path.exists("backup"):
             os.mkdir("backup")
         for file in directory:
-            if file.endswith(".json"):
+            if file.endswith(".json") and file not in critical_files:
                 shutil.copy2(file, "backup")
         return True
     except:
@@ -115,6 +115,14 @@ async def handle_gen_userskills(file: str, members, **kwargs) -> None:
 async def handle_gen_userstocks(file: str, members, **kwargs) -> None:
     await id_dict_files(file=file, members=members)
 
+@register_file_generator(file_name="dungeon.json")
+async def handle_gen_dungeon(file: str, members, **kwargs) -> None:
+    await id_dict_files(file=file, members=members)
+
+@register_file_generator(file_name="user-monuments.json")
+async def handle_gen_monuments(file: str, members, **kwargs) -> None:
+    await id_dict_files(file=file, members=members)
+
 #events-----------------------------------------------------------------------------------------------
 
 @bot.event
@@ -166,6 +174,11 @@ async def on_ready():
     bot_tasks['Shop Refresh'] = shop_refresh
     gaol_refresh.start()
     bot_tasks['Gaol Break'] = gaol_refresh
+    health_reset.start()
+    bot_tasks['Health Reset'] = health_reset
+    dungeon_updates.start()
+    bot_tasks['Dungeon Update'] = dungeon_updates
+    banner_check.start()
     print("Started tasks")
 
 @bot.event
@@ -260,11 +273,87 @@ async def gaol_refresh():
     for userid, monlist in gaols.items():
         for mon in monlist:
             boxes[userid][mon]['gaol'] = False
+            boxes[userid][mon]['away'] = False
+            boxes[userid][mon]['currhp'] = boxes[userid][mon]['maxhp']
+            boxes[userid][mon]['statuses'] = []
         gaols[userid] = []
     with lock and open('goal.json', 'w') as f:
         json.dump(gaols, f, indent=2)
     with lock and open('user-mons.json', 'w') as f:
         json.dump(boxes, f, indent=2)
+
+@tasks.loop(time=datetime.time(hour=10, minute=0)) #0500 cdt -> 1000 utc
+async def health_reset():
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    for userid, monlist in boxes.items():
+        for mon in monlist:
+            if not boxes[userid][mon]['away'] or boxes[userid][mon]['gaol']:
+                boxes[userid][mon]['currhp'] = boxes[userid][mon]['maxhp']
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+
+@tasks.loop(hours=1)
+async def dungeon_updates():
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    with lock and open('dungeon.json') as f:
+        dungeons = json.load(f)
+    userids = [key for key in data if dungeons[key] != []]
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    with lock and open('gricklemon.json') as f:
+        mons = json.load(f)
+    for userid in userids:
+        user = await bot.fetch_user(int(userid))
+        for mon in dungeons[userid]:
+            how_solaire_feelin_bout_dis = random.choices(stock_favorlvls, weights=[5,25,40,25,5])[0]
+            match how_solaire_feelin_bout_dis:
+                case "hated":
+                    damage = random.randint(math.floor(boxes[userid][mon]['maxhp'] * 0.3), math.floor(boxes[userid][mon]['maxhp']))
+                    exp = 0
+                case "poor":
+                    damage = random.randint(math.floor(boxes[userid][mon]['maxhp'] * 0.05), math.floor(boxes[userid][mon]['maxhp'] * 0.30))
+                    exp = random.randint(math.floor(boxes[userid][mon]['nextlvl'] * 0.05), math.floor(boxes[userid][mon]['nextlvl'] * 0.10))
+                case "none":
+                    damage = random.randint(math.floor(boxes[userid][mon]['maxhp'] * 0.05), math.floor(boxes[userid][mon]['maxhp'] * 0.1))
+                    exp = random.randint(math.floor(boxes[userid][mon]['nextlvl'] * 0.05), math.floor(boxes[userid][mon]['nextlvl'] * 0.20))
+                case "favored":
+                    damage = random.randint(math.floor(boxes[userid][mon]['maxhp'] * 0.01), math.floor(boxes[userid][mon]['maxhp'] * 0.05))
+                    exp = random.randint(math.floor(boxes[userid][mon]['nextlvl'] * 0.05), math.floor(boxes[userid][mon]['nextlvl'] * 0.3))
+                case "loved":
+                    damage = 0
+                    exp = random.randint(math.floor(boxes[userid][mon]['nextlvl'] * 0.1), math.floor(boxes[userid][mon]['nextlvl'] * 0.3))
+            dungeons[userid][mon]['currhp'] -= damage
+            if dungeons[userid][mon]['currhp'] <= 0:
+                boxes[userid][mon] = dungeons[userid][mon]
+                boxes[userid][mon]['gaol'] = True
+                boxes[userid][mon]['away'] = False
+                del dungeons[userid][mon]
+                await user.send(f"{mon} in the dungeon has fucking died and been sent to Gaol lmao")
+            else:
+                grickle.process_lvls(dungeons[userid][mon], mons[mon], exp)
+                boxes[userid][mon] = dungeons[userid][mon]
+                await user.send(f"{mon} in the dungeon has gained {exp} exp and lost {damage} health")
+    with lock and open('dungeon.json', 'w') as f:
+        json.dump(dungeons, f, indent=2)
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+
+@tasks.loop(time=datetime.time(hour=11, minute=30)) #0630 cdt -> 1130 utc
+async def banner_check():
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    print(datetime.date.today())
+    if datetime.date.today().strftime("%Y-%m-%d") != banners['change-date']:
+        return
+    banners['change-date'] = (datetime.date.today() + datetime.timedelta(days=14)).strftime("%Y-%m-%d")
+    bannerchoices = [banner for banner in banners if banner != "change-date" and banner != "active"] #later on add filtering for repeat banners after you create multiple
+    chosen_banner = random.choice(bannerchoices)
+    banners['active'] = chosen_banner
+    with lock and open('banners.json', 'w') as f:
+        json.dump(banners, f, indent=2)
+    await general.send(f"@everyone a new banner has been selected", embed=banner_to_embed(chosen_banner, banners[chosen_banner]))
 
 #on message---------------------------------------------------------------------------------------------
 
@@ -289,6 +378,18 @@ async def incfuck(author):
 #commands--------------------------------------------------------------------------------------------------
 
 @bot.tree.command(guild=guild)
+async def createbackup(interaction):
+    """Creates a backup of all data files"""
+    if interaction.user.id != ADMIN:
+        await interaction.response.send_message("Admin only", ephemeral=True)
+        return
+    backedup = await create_backup()
+    if not backedup:
+        await interaction.response.send_message("Failed to create backup", ephemeral=True)
+        return
+    await interaction.response.send_message("Backup created", ephemeral=True)
+
+@bot.tree.command(guild=guild)
 async def generatedatafiles(interaction):
     """Creates a backup then generates / regenerates data files"""
     if interaction.user.id != ADMIN:
@@ -308,7 +409,7 @@ async def schedule(interaction):
     message = f"timezone: utc (subtract 5 hours for cdt)\n"
     for taskname, task in bot_tasks.items():
         next_run = task.next_iteration
-        message += f"{taskname}: {next_run.strftime('%m %d, %H:%M')}\n"
+        message += f"{taskname}: {next_run.strftime('%m-%d, %H:%M')}\n"
     await interaction.response.send_message(message, ephemeral=True)
 
 @bot.tree.command(guild=guild)
@@ -775,6 +876,30 @@ def mon_to_embed(monname: str, mon: dict) -> discord.Embed:
     embed.add_field(name="Equiped:", value=equip_string, inline=False)
     return embed
 
+def banner_to_embed(bannername: str, banner: dict) -> discord.Embed:
+    with lock and open('boss-mons.json') as f:
+        bosses = json.load(f)
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    bannerbosses = [boss for boss in bosses if bosses[boss]['banner'] == bannername]
+    embed = discord.Embed(title=bannername, description=banner['description'], color=rarity_colors[banner['rarity']])
+    embed.set_author(name=f"Active until: {banners['change-date']}")
+    for boss in bannerbosses:
+        embed.add_field(name=boss, value=f"{bosses[boss]['description']}\nneeded: {bosses[boss]['key']}\nlvl: {bosses[boss]['lvl']}\ntype: {bosses[boss]['type']}")
+    return embed
+
+def monument_to_embed(monumentname: str, monument: dict) -> discord.Embed:
+    embed = discord.Embed(title=monumentname, description=monument['description'], color=rarity_colors[monument['rarity']])
+    embed.set_author(name=f"Banner: {monument['banner']}")
+    return embed
+
+def boss_to_embed(bossname: str, boss: dict) -> discord.Embed:
+    embed = discord.Embed(title=bossname, description=boss['description'], color=rarity_colors['Incandescent'])
+    embed.set_author(name=f"lvl: {boss['lvl']}")
+    embed.set_footer(text=f"Type: {boss['type']}")
+    embed.add_field(name="Needed:", value=boss['key'])
+    return embed
+
 @bot.tree.command(guild=guild)
 async def mons(interaction):
     """Shows your Gricklemon"""
@@ -861,7 +986,6 @@ def mon_to_usermon(skelemon: dict, lvl: int) -> dict:
     skelecopy['nextlvl'] = grickle.calc_next_level_exp(skelecopy)
     skelecopy['gaol'] = False
     skelecopy['away'] = False
-    skelecopy['equiped'] = {}
     skelecopy['statuses'] = []
     return skelecopy
 
@@ -897,7 +1021,7 @@ async def pull(interaction):
     active_banner = banners['active']
     mon_list_rare = {mon: value for mon, value in mons.items() if value['banner'] == active_banner and value['rarity'] == 'Rare'}
     mon_list_legendary = {mon: value for mon, value in mons.items() if value['banner'] == active_banner and value['rarity'] == 'Legendary'}
-    rarity = random.choices(["Rare", "Legendary"], weights=[95,5])[0]
+    rarity = random.choices(["Rare", "Legendary"], weights=[80,20])[0]
     match rarity:
         case "Rare":
             chosen_boi = random.choice(list(mon_list_rare.keys()))
@@ -905,17 +1029,19 @@ async def pull(interaction):
             chosen_boi = random.choice(list(mon_list_legendary.keys()))
     with lock and open('user-mons.json') as f:
         boxes = json.load(f)
-    if chosen_boi in boxes[userid]:
-        dupes += 1
-    else:
-        boxes[userid][chosen_boi] = mon_to_usermon(mons[chosen_boi], lvl=5)
-        with lock and open('user-mons.json', 'w') as f:
-            json.dump(boxes, f, indent=2)
-    embeds.append(mon_to_embed(chosen_boi, boxes[userid][chosen_boi]))
     with lock and open('skills.json') as f:
         skills = json.load(f)
     with lock and open('user-skills.json') as f:
         skill_boxes = json.load(f)
+    if chosen_boi in boxes[userid]:
+        dupes += 1
+    else:
+        boxes[userid][chosen_boi] = mon_to_usermon(mons[chosen_boi], lvl=5)
+        for skill in boxes[userid][chosen_boi]['skills']:
+            skill_boxes[userid][skill] = boxes[userid][chosen_boi]['skills'][skill]
+        with lock and open('user-mons.json', 'w') as f:
+            json.dump(boxes, f, indent=2)
+    embeds.append(mon_to_embed(chosen_boi, boxes[userid][chosen_boi]))
     skill_list_common = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Common"}
     skill_list_uncommon = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Uncommon"}
     skill_list_rare = {skill: value for skill, value in skills.items() if value['banner'] == active_banner and value['rarity'] == "Rare"}
@@ -1180,7 +1306,7 @@ async def battle(interaction, mon: str):
             chosen_boi = random.choice(list(banner_mons_legendary.keys()))
     with lock and open('battles.json') as f:
         battles = json.load(f)
-    enemylvl = random.randint(max(box[mon]['lvl'] - 10, 1), box[mon]['lvl'] + 10)
+    enemylvl = random.randint(max(box[mon]['lvl'] - banners[active_banner]['lvlweights'][0], 1), box[mon]['lvl'] + banners[active_banner]['lvlweights'][1])
     battles[battles['nextid']] = {userid: {mon: box[mon]}, "ai": {chosen_boi: mon_to_usermon(mons[chosen_boi], lvl=enemylvl)}, "turn": userid}
     box[mon]['away'] = True
     data[userid]['battleid'] = battles['nextid']
@@ -1258,13 +1384,20 @@ async def end_battle(interaction: discord.Interaction, winnerid: str, winner: st
                 inventories = json.load(f)
             inventory = inventories[winnerid]
             if drop not in inventory:
-                inventory[drop] = active_banner['drop-pool'][drop]
+                inventory[drop] = 1
             else:
                 inventory[drop] += 1
             inventories[winnerid] = inventory
             with lock and open('user-inventories.json', 'w') as f:
                 json.dump(inventories, f, indent=2)
             message = message + f"\n{loser} dropped {drop}"
+        if losermon.get('monument') != None:
+            with lock and open('user-monuments.json') as f:
+                user_monuments = json.load(f)
+            monumentname = list(losermon['monument'].keys())[0]
+            user_monuments[userid][monumentname] = losermon['monument'][monumentname]
+            with lock and open('user-monuments.json', 'w') as f:
+                json.dump(user_monuments, f, indent=2)
     del battles[battleid]
     with lock and open('battles.json', 'w') as f:
         json.dump(battles, f, indent=2)
@@ -1500,6 +1633,9 @@ async def run(interaction):
             await ai_turn(interaction, enemymon, mon)
         return
     if random.random() >= grickle.flee_chance(battle[userid][mon], battle[enemyid][enemymon]):
+        with lock and open('user-mons.json') as f:
+            boxes = json.load(f)
+        boxes[userid][mon]['away'] = False
         del battles[battleid]
         data[userid]['battleid'] = 0
         if enemyid != 'ai':
@@ -1508,6 +1644,8 @@ async def run(interaction):
             json.dump(battles, f, indent=2)
         with lock and open('data.json', 'w') as f:
             json.dump(data, f, indent=2)
+        with lock and open('user-mons.json', 'w') as f:
+            json.dump(boxes, f, indent=2)
         await interaction.response.send_message("Fled from battle", ephemeral=ephemeral)
         return
     battle['turn'] = enemyid
@@ -1529,7 +1667,7 @@ async def ai_turn(interaction: discord.Interaction, aimon: str, enemymon: str):
     battleid = str(data[enemyid]['battleid'])
     battle = battles[battleid]
     for status in battle[userid][aimon]['statuses']:
-        message = message + grickle.status_hadler[status](battle[userid][aimon], battle[enemyid][enemymon])
+        message = message + grickle.status_handler[status](battle[userid][aimon], battle[enemyid][enemymon])
     if battle[userid][aimon]['currhp'] <= 0:
         await interaction.followup.send(message, ephemeral=True)
         await end_battle(interaction, userid, enemymon, aimon, battles, data)
@@ -1611,7 +1749,169 @@ async def gaol(interaction):
         await interaction.response.send_message("Gaol Empty", ephemeral=True)
         return
     await interaction.response.send_message(message, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=mon_not_away_autocomplete)
+async def sendtodungeon(interaction, mon: str):
+    """Sends mon to the dungeon"""
+    userid = str(interaction.user.id)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    if mon not in boxes[userid] or boxes[userid][mon]['away'] or boxes[userid][mon]['gaol']:
+        await interaction.response.send_message("Invalid Gricklemon", ephemeral=True)
+        return
+    with lock and open('dungeon.json') as f:
+        dungeons = json.load(f)
+    if len(dungeons[userid]) == 3:
+        await interaction.response.send_message("Cant have more than 3 Gricklemons in the dungeon at a time", ephemeral=True)
+    dungeons[userid][mon] = boxes[userid][mon]
+    boxes[userid][mon]['away'] = True
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+    with lock and open('dungeon.json', 'w') as f:
+        json.dump(dungeons, f, indent=2)
+    await interaction.response.send_message(f"{mon} sent to the dungeon", ephemeral=True)
+
+async def mon_in_dungeon(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    userid = str(interaction.user.id)
+    with lock and open('dungeon.json') as f:
+        dungeons = json.load(f)
+    choices = []
+    for mon in dungeons[userid]:
+        if current.lower() in mon.lower():
+            choices.append(app_commands.Choice(name=mon, value=mon))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=mon_in_dungeon)
+async def returnfromdungeon(interaction, mon: str):
+    """Returns mon from dungeon"""
+    userid = str(interaction.user.id)
+    with lock and open('dungeon.json') as f:
+        dungeons = json.load(f)
+    if mon not in dungeons[userid]:
+        await interaction.response.send_message("Invalid Gricklemon", ephemeral=True)
+        return
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    boxes[userid][mon] = dungeons[userid][mon]
+    boxes[userid][mon]['away'] = False
+    del dungeons[userid][mon]
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+    with lock and open('dungeon.json', 'w') as f:
+        json.dump(dungeons, f, indent=2)
+    await interaction.response.send_message(f"{mon} returned from the dungeon", ephemeral=True)
  
+@bot.tree.command(guild=guild)
+async def dungeoninfo(interaction):
+    """Shows Gricklemon in the dungeon"""
+    userid = str(interaction.user.id)
+    with lock and open('dungeon.json') as f:
+        dungeons = json.load(f)
+    if len(dungeons[userid]) == 0:
+        await interaction.response.send_message("No mons in dungeon", ephemeral=True)
+        return
+    embeds = []
+    for mon in dungeons[userid]:
+        embeds.append(mon_to_embed(mon, dungeons[userid][mon]))
+    await interaction.response.send_message("Mons in the dungeon", embeds=embeds, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+async def banner(interaction, name: str = "active"):
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    if name not in banners or name != "active":
+        await interaction.response.send_message("Invalid banner name", ephemeral=True)
+        return
+    if name == "active":
+        name = banners['active']
+    await interaction.response.send_message(embed=banner_to_embed(name, banners[name]), ephemeral=True)
+
+async def bannerboss_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    with lock and open('boss-mons.json') as f:
+        bosses = json.load(f)
+    choices = []
+    for boss in bosses:
+        if current.lower() in boss.lower() and bosses[boss]['banner'] == banners['active']:
+            choices.append(app_commands.Choice(name=boss, value=boss))
+    return choices
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(boss=bannerboss_autocomplete)
+@app_commands.autocomplete(mon=mon_not_away_autocomplete)
+async def boss(interaction, boss: str, mon: str):
+    """Challenge a banner boss"""
+    userid = str(interaction.user.id)
+    with lock and open('boss-mons.json') as f:
+        bosses = json.load(f)
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    with lock and open('user-inventories.json') as f:
+        inventories = json.load(f)
+    with lock and open('user-mons.json') as f:
+        boxes = json.load(f)
+    with lock and open('battles.json') as f:
+        battles = json.load(f)
+    with lock and open('data.json') as f:
+        data = json.load(f)
+    active_banner = banners["active"]
+    if boss not in bosses or bosses[boss]['banner'] != active_banner:
+        await interaction.response.send_message("Invalid Boss", ephemeral=True)
+        return
+    if bosses[boss]['key'] not in inventories[userid]:
+        await interaction.response.send_message("You don't have the right boy", ephemeral=True)
+        return
+    if mon not in boxes[userid] or boxes[userid][mon]['away'] or boxes[userid][mon]['gaol']:
+        await interaction.response.send_message("Invalid Gricklemon", ephemeral=True)
+        return
+    inventories[userid][bosses[boss]['key']] -= 1
+    if inventories[userid][bosses[boss]['key']] == 0:
+        del inventories[userid][bosses[boss]['key']]
+    battleid = battles['nextid']
+    battles['nextid'] += 1
+    battles[battleid] = {userid: {mon: boxes[userid][mon]}, "ai": {boss: bosses[boss]}, "turn": userid}
+    boxes[userid][mon]['away'] = True
+    data[userid]['battleid'] = battleid
+    with lock and open('battles.json', 'w') as f:
+        json.dump(battles, f, indent=2)
+    with lock and open('user-inventories.json', 'w') as f:
+        json.dump(inventories, f, indent=2)
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
+    with lock and open('data.json', 'w') as f:
+        json.dump(data, f, indent=2)
+    await interaction.response.send_message(bosses[boss]['entrancemsg'], ephemeral=True)
+
+@bot.tree.command(guild=guild)
+async def monuments(interaction):
+    """Displays your Monuments"""
+    userid = str(interaction.user.id)
+    with lock and open('user-monuments.json') as f:
+        user_monuments = json.load(f)
+    if len(user_monuments[userid]) == 0:
+        await interaction.response.send_message("You dont have any Monuments yet. Bet your maidenless too.", ephemeral=True)
+        return
+    embeds = []
+    for monumentname in user_monuments[userid]:
+        embeds.append(monument_to_embed(monumentname, user_monuments[userid][monumentname]))
+    await interaction.response.send_message("Monuments of your strength", embeds=embeds, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(boss=bannerboss_autocomplete)
+async def bossdesc(interaction, boss: str):
+    """Shows the description of a boss in the active banner"""
+    with lock and open('boss-mons.json') as f:
+        bosses = json.load(f)
+    with lock and open('banners.json') as f:
+        banners = json.load(f)
+    if boss not in bosses or bosses[boss]['banner'] != banners['active']:
+        await interaction.response.send_message("Invalid Boss", ephemeral=True)
+        return
+    await interaction.response.send_message(embed=boss_to_embed(boss, bosses[boss]), ephemeral=True)
+
 #running utility-----------------------------------------------------------------------------------------------
 
 def main():

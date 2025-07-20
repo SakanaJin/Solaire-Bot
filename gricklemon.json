@@ -18,7 +18,7 @@
     "description": "This is a test monster he be grickly",
     "skills": {
       "testskill": {
-        "basedmg": 10,
+        "basedmg": 50,
         "rarity": "Legendary",
         "description": "This skill does some testing",
         "scaling": {
@@ -28,7 +28,42 @@
           "fth": "D",
           "arc": "E"
         },
-        "statuses": []
+        "statuses": [],
+        "equiped": true
+      }
+    }
+  },
+  "Agent Kill": {
+    "banner": "Normal",
+    "rarity": "Legendary",
+    "basehp": 100,
+    "type": "Water",
+    "statscales": {
+      "vit": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "str": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "dex": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "int": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "fth": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "adp": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "arc": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "res": "floor(7 + 7 * lvl + 7 * lvl**2)",
+      "def": "floor(7 + 7 * lvl + 7 * lvl**2)"
+    },
+    "description": "Born from hatred, an agent of death and suffering. Nothing will stand before this monster.",
+    "skills": {
+      "Murder": {
+        "basedmg": 777,
+        "rarity": "Legendary",
+        "description": "Literally just murder",
+        "scaling": {
+          "str": "S",
+          "dex": "S",
+          "int": "S",
+          "fth": "S",
+          "arc": "S"
+        },
+        "statuses": ["Poison", "Paralysis"],
+        "equiped": true
       }
     }
   },
@@ -51,7 +86,7 @@
     "description": "This is a test monster he be grickly",
     "skills": {
       "testskill": {
-        "basedmg": 10,
+        "basedmg": 50,
         "rarity": "Legendary",
         "description": "This skill does some testing",
         "scaling": {
@@ -61,7 +96,8 @@
           "fth": "D",
           "arc": "E"
         },
-        "statuses": []
+        "statuses": [],
+        "equiped": true
       }
     }
   }

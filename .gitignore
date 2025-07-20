@@ -104,9 +104,12 @@ user-mons.json
 battles.json
 user-skills.json
 gaol.json
+dungeon.json
+user-monuments.json
 
 #testing py files
 test.py
+guitest.py
 
 #backup folder
 backup/

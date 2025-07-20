@@ -46,13 +46,13 @@ def calc_hp(mon: dict, skelemon: dict) -> int:
 def calc_next_level_exp(mon: dict) -> int:
     statsum = sum(mon['stats'].values())
     sauce = (statsum + mon['maxhp']) / 109
-    return math.floor(1 + 4 * mon['lvl'] + 4 * sauce**2)
+    return math.floor(1 + 8 * mon['lvl']**2 + 8 * sauce)
 
 def drop_exp(winner: dict, loser: dict) -> int:
     lsauce = (sum(loser['stats'].values()) + loser['maxhp']) / 109
     saucediff = max(lsauce - (sum(winner['stats'].values()) + winner['maxhp']) / 109, 1)
     lvldiff = max(loser['lvl'] - winner['lvl'], 1)
-    return math.floor(1 + lvldiff * loser['lvl'] + saucediff * lsauce**2)
+    return math.floor(1 + lvldiff * loser['lvl']**2 + saucediff * lsauce)
 
 def drop_sunlight(loser: dict) -> int:
     base_sunlight = 5
@@ -62,18 +62,16 @@ def drop_sunlight(loser: dict) -> int:
 
 def process_lvls(mon: dict, skelemon: dict, exp: int) -> None:
     while True:
-        expdiff = exp - mon['nextlvl']
-        if expdiff >= 0:
+        intdiv = math.floor(exp / mon['nextlvl'])
+        if intdiv > 0:
+            exp -= mon['nextlvl']
             mon['lvl'] += 1
             mon['maxhp'] = calc_hp(mon, skelemon)
             mon['currhp'] = mon['maxhp']
             lvl_up_stats(mon, skelemon)
             mon['nextlvl'] = calc_next_level_exp(mon)
-            exp = expdiff
-        elif exp != 0:
-            mon['nextlvl'] += expdiff
-            break
         else:
+            mon['nextlvl'] -= exp
             break
 
 def saturation(stat: int) -> float:
@@ -102,12 +100,9 @@ def lvl_up_stats(mon: dict, monskeleton: dict) -> None:
     mon['stats'] = {stat: func(mon['lvl']) for stat, func in growth_funcs.items()}
 
 def hit_chance(attacker: dict, defender: dict) -> float:
-    # base_hit = 0.50
-    # max_hit = 0.98
-    # min_hit = 0.50
-    base_hit = 1
-    max_hit = 1
-    min_hit = 1
+    base_hit = 0.50
+    max_hit = 0.98
+    min_hit = 0.50
     hit_chance = base_hit + ((attacker['stats']['adp'] - defender['stats']['adp']) * 0.01)
     return max(min(hit_chance, max_hit), min_hit)
 
@@ -167,17 +162,17 @@ def heal(percent: float, mon: dict) -> str:
     return f"healed for {mon['currhp'] - currenthp} hp"
 
 @register_item(item_name="Estus")
-def handle_estus(mon: dict) -> str:
+def handle_estus(mon: dict, **kwargs) -> str:
     message = heal(percent=0.30, mon=mon)
     return message
 
 @register_item(item_name="Blood Vial")
-def handle_blood_vial(mon: dict) -> str:
+def handle_blood_vial(mon: dict, **kwargs) -> str:
     message = heal(percent=0.50, mon=mon)
     return message
 
 @register_item(item_name="Stonesword Key")
-def handle_stone_sword_key(mon: dict) -> str:
+def handle_stone_sword_key(mon: dict, **kwargs) -> str:
     if mon['gaol']:
         mon['gaol'] = False
         mon['currhp'] = mon['maxhp']
