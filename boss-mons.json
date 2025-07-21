@@ -1,5 +1,5 @@
 {
-  "Testboss": {
+  "Test Boss": {
     "rarity": "Incandescent",
     "banner": "Normal",
     "maxhp": 10000,
@@ -27,7 +27,6 @@
     },
     "description": "This is a test boss",
     "entrancemsg": "Test Boss will eat your booty now start your turn",
-    "equiped": {},
     "statuses": [],
     "skills": {
       "Skilltest": {

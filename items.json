@@ -3,7 +3,7 @@
     "rarity": "Common",
     "price": 9999,
     "consumable": true,
-    "equipable": false,
+    "statuseffect": false,
     "nobattleonly": false,
     "description": "Heals 30% of max hp"
   },
@@ -11,7 +11,7 @@
     "rarity": "Uncommon",
     "price": 9999,
     "consumable": true,
-    "equipable": false,
+    "statuseffect": false,
     "nobattleonly": false,
     "description": "Heals 50% of max hp"
   },
@@ -19,7 +19,7 @@
     "rarity": "Incandescent",
     "price": 9999,
     "consumable": false,
-    "equipable": false,
+    "statuseffect": false,
     "nobattleonly": false,
     "description": "Some really cool shit."
   },
@@ -27,7 +27,7 @@
     "rarity": "Rare",
     "price": 9999,
     "consumable": true,
-    "equipable": false,
+    "statuseffect": true,
     "nobattleonly": false,
     "description": "Im sure this will do something cool"
   },
@@ -35,7 +35,7 @@
     "rarity": "Legendary",
     "price": 9999,
     "consumable": false,
-    "equipable": false,
+    "statuseffect": false,
     "nobattleonly": false,
     "description": "Gacha pulls?"
   },
@@ -43,15 +43,23 @@
     "rarity": "Legendary",
     "price": 9999,
     "consumable": true,
-    "equipable": false,
+    "statuseffect": false,
     "nobattleonly": true,
     "description": "Breaks one Gricklemon out of Gaol"
+  },
+  "Beast Blood Pellet": {
+    "rarity": "Legendary",
+    "price": 9999,
+    "consumable": true,
+    "statuseffect": true,
+    "nobattleonly": false,
+    "description": "Increases strength but lowers defense by fivefold for one turn"
   },
   "Test Key": {
     "rarity": "Key-Item",
     "price": 0,
     "consumable": false,
-    "equipable": false,
+    "statuseffect": false,
     "nobattleonly": true,
     "description": "Gives the right to challenge Test Boss"
   }

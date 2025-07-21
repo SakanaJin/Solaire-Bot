@@ -523,39 +523,23 @@ async def registerbday(interaction, birthday: str):
     await interaction.response.send_message('Birthday registered')
 
 @bot.tree.command(guild=guild)
-async def resetdata(interaction):
-    """resets data.json"""
-    if interaction.user.id != ADMIN:
-        await interaction.response.send_message("Admin only")
-        return
-    data = {}
-    for user in interaction.guild.members:
-        data[user.id] = {"name": user.name, "birthday": "mm-dd", "fucks": 0, "sunlight": 100, "battleid": 0}
-    with lock and  open('data.json', 'w') as f:
-        json.dump(data, f, indent=2)
-    await interaction.response.send_message("data reset")
-
-@bot.tree.command(guild=guild)
-async def resetquotes(interaction):
-    """resets quotes"""
-    if interaction.user.id != ADMIN:
-        await interaction.response.send_message("Admin only")
-        return
-    with lock and open('quotes.json', 'w') as f:
-        json.dump(solaire_quotes, f, indent=2)
-    await interaction.response.send_message("quotes reset")
-
-@bot.tree.command(guild=guild)
 async def balance(interaction):
     """Shows ya money"""
     with lock and open('data.json') as f:
         data = json.load(f)
     await interaction.response.send_message(f"Balance: {data[str(interaction.user.id)]['sunlight']} Sunlight", ephemeral=True)
 
+@bot.tree.command(guild=guild)
+async def ticket(interaction, description: str):
+    """Creates a ticket and sends it to the admin. Please be as descriptive as possible."""
+    amdin = await bot.fetch_user(ADMIN)
+    await amdin.send(f"Ticket from user: {interaction.user.name}\nTicket: {description}")
+    await interaction.response.send_message("Ticket sent to admin", ephemeral=True)
+
 #stock commands------------------------------------------------------------------------------
 
 @bot.tree.command(guild=guild)
-async def showstocks(interaction):
+async def stocks(interaction):
     """shows current stock prices"""
     message = ''
     with lock and open('stocks.json') as f:
@@ -823,19 +807,6 @@ async def resetshop(interaction):
     await interaction.response.send_message("Shop refreshed", ephemeral=True)
 
 @bot.tree.command(guild=guild)
-async def resetinventories(interaction):
-    """resets inventories"""
-    if interaction.user.id != ADMIN:
-        await interaction.response.send_message("Admin only")
-        return
-    inventories = {}
-    for user in interaction.guild.members:
-        inventories[user.id] = {}
-    with lock and open('user-inventories.json', 'w') as f:
-        json.dump(inventories, f, indent=2)
-    await interaction.response.send_message("Inventories reset")
-
-@bot.tree.command(guild=guild)
 async def testcolors(interaction):
     """tests colors"""
     channel = interaction.channel
@@ -860,20 +831,18 @@ def skill_to_embed(skillname: str, skill: dict) -> discord.Embed:
     return embed
 
 def mon_to_embed(monname: str, mon: dict) -> discord.Embed:
-    if len(mon['equiped'].keys()) == 0:
-        equip_string = "None"
-    else:
-        equip_string = mon['equiped'].keys()[0]
     stats_string = "".join(f"{stat}: {value}\n" for stat, value in mon['stats'].items())
     skills_string = "".join(f"{skillname}: {skill['basedmg']}\n" for skillname, skill in mon['skills'].items())
     embed = discord.Embed(title=monname, description=mon['description'], color=rarity_colors[mon['rarity']])
-    embed.set_author(name=f"lvl: {mon['lvl']} nextlvl: {mon['nextlvl']}")
+    if mon.get("nextlvl"):
+        embed.set_author(name=f"lvl: {mon['lvl']} nextlvl: {mon['nextlvl']}")
+    else:
+        embed.set_author(name=f"lvl: {mon['lvl']}")
     embed.set_footer(text=mon['type'])
     embed.add_field(name="Max Hp", value=mon['maxhp'], inline=True)
     embed.add_field(name="Current Hp", value=mon['currhp'], inline=True)
     embed.add_field(name="Stats:", value=stats_string, inline=False)
     embed.add_field(name="Skills:", value=skills_string, inline=False)
-    embed.add_field(name="Equiped:", value=equip_string, inline=False)
     return embed
 
 def banner_to_embed(bannername: str, banner: dict) -> discord.Embed:
@@ -885,7 +854,7 @@ def banner_to_embed(bannername: str, banner: dict) -> discord.Embed:
     embed = discord.Embed(title=bannername, description=banner['description'], color=rarity_colors[banner['rarity']])
     embed.set_author(name=f"Active until: {banners['change-date']}")
     for boss in bannerbosses:
-        embed.add_field(name=boss, value=f"{bosses[boss]['description']}\nneeded: {bosses[boss]['key']}\nlvl: {bosses[boss]['lvl']}\ntype: {bosses[boss]['type']}")
+        embed.add_field(name=boss, value=f"{bosses[boss]['description']}\nneeded: {bosses[boss]['key']}\nlvl: {bosses[boss]['lvl']}\ntype: {bosses[boss]['type']}", inline=False)
     return embed
 
 def monument_to_embed(monumentname: str, monument: dict) -> discord.Embed:
@@ -1328,6 +1297,22 @@ async def end_battle(interaction: discord.Interaction, winnerid: str, winner: st
     winnermon = battle[winnerid][winner]
     startlvl = winnermon['lvl']
     losermon = battle[loserid][loser]
+    if "Poison" in winnermon['statuses']:
+        winnermon['statuses'].remove("Poison")
+    if "Paralysis" in winnermon['statuses']:
+        winnermon['statuses'].remove("Paralysis")
+    if "Poison" in losermon['statuses']:
+        losermon['statuses'].remove("Poison")
+    if "Paralysis" in losermon['statuses']:
+        losermon['statuses'].remove("Paralysis")
+    while len(losermon['statuses']) != 0:
+        status = losermon['statuses'][0]
+        grickle.status_handler[status](attacker=losermon, defender=winnermon)
+    while len(winnermon['statuses']) != 0:
+        status = winnermon['statuses'][0]
+        grickle.status_handler[status](attacker=winnermon, defender=losermon)
+    if winnermon['currhp'] <= 0:
+        winnermon['currhp'] = 1
     exp = grickle.drop_exp(winnermon, losermon)
     if loserid != 'ai':
         losermon['gaol'] = True
@@ -1361,8 +1346,6 @@ async def end_battle(interaction: discord.Interaction, winnerid: str, winner: st
     boxes[winnerid][winner] = winnermon
     if loserid != 'ai':
         boxes[loserid][loser] = losermon
-    with lock and open('user-mons.json', 'w') as f:
-        json.dump(boxes, f, indent=2)
     message = f"{winner} defeated {loser} and gained {exp} exp."
     if startlvl != winnermon['lvl']:
         message = message + f"\n{winner} leveled up {startlvl} -> {winnermon['lvl']}"
@@ -1391,14 +1374,23 @@ async def end_battle(interaction: discord.Interaction, winnerid: str, winner: st
             with lock and open('user-inventories.json', 'w') as f:
                 json.dump(inventories, f, indent=2)
             message = message + f"\n{loser} dropped {drop}"
-        if losermon.get('monument') != None:
+        if losermon.get('monument') != None: #add in obtaining the boss mon here
             with lock and open('user-monuments.json') as f:
                 user_monuments = json.load(f)
             monumentname = list(losermon['monument'].keys())[0]
             user_monuments[userid][monumentname] = losermon['monument'][monumentname]
             with lock and open('user-monuments.json', 'w') as f:
                 json.dump(user_monuments, f, indent=2)
+            with lock and open('user-skills.json') as f:
+                skill_boxes = json.load(f)
+            boxes[winnerid][loser] = mon_to_usermon(mons[loser], lvl=5)
+            for skill in boxes[winnerid][loser]['skills']:
+                skill_boxes[winnerid][skill] = boxes[winnerid][loser]['skills'][skill]
+            with lock and open('user-skills.json', 'w') as f:
+                json.dump(skill_boxes, f, indent=2)
     del battles[battleid]
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(boxes, f, indent=2)
     with lock and open('battles.json', 'w') as f:
         json.dump(battles, f, indent=2)
     data[winnerid]['battleid'] = 0
@@ -1450,8 +1442,9 @@ async def attack(interaction, skill: str):
     else:
         ephemeral = False
     enemymon = list(battle[enemyid].keys())[0]
-    for status in battle[userid][mon]['statuses']:
-        message = message + grickle.status_hadler[status](battle[userid][mon], battle[enemyid][enemymon])
+    statuses = battle[userid][mon]['statuses'].copy()
+    for status in statuses:
+        message = message + grickle.status_handler[status](attacker=battle[userid][mon], defender=battle[enemyid][enemymon])
     if battle[userid][mon]['currhp'] <= 0:
         await interaction.response.send_message(message, ephemeral=ephemeral)
         await end_battle(interaction, enemyid, enemymon, mon, battles, data)
@@ -1527,6 +1520,9 @@ async def useitem(interaction, item: str):
         await interaction.response.send_message("Invalid item", ephemeral=True)
         return
     battleid = str(data[userid]['battleid'])
+    if battleid == "0" and items[item]['statuseffect']:
+        await interaction.response.send_message("Can not use status items outside of battle", ephemeral=True)
+        return
     if battleid == "0" or items[item]['nobattleonly']:
         with lock and open('user-mons.json') as f:
             boxes = json.load(f)
@@ -1535,7 +1531,7 @@ async def useitem(interaction, item: str):
         await interaction.response.send_message("Pick a Gricklemon to use item on", view=view, ephemeral=True)
         await view.wait()
         if view.confirmed:
-            message = grickle.item_handler[item](boxes[userid][view.selected_value])
+            message = grickle.item_handler[item](monname=view.selected_value, mon=boxes[userid][view.selected_value], userid=userid)
             if '\0' in message:
                 await interaction.followup.send(message, ephemeral=True)
                 return
@@ -1565,8 +1561,9 @@ async def useitem(interaction, item: str):
     ephemeral = False
     if enemyid == 'ai':
         ephemeral = True
-    for status in battle[userid][mon]['statuses']:
-        message = message + grickle.status_hadler[status](battle[userid][mon], battle[enemyid][enemymon])
+    statuses = battle[userid][mon]['statuses'].copy()
+    for status in statuses:
+        message = message + grickle.status_handler[status](attacker=battle[userid][mon], defender=battle[enemyid][enemymon])
     if battle[userid][mon]['currhp'] <= 0:
         await interaction.response.send_message(message, ephemeral=ephemeral)
         await end_battle(interaction, enemyid, enemymon, mon, battles, data)
@@ -1617,8 +1614,9 @@ async def run(interaction):
     ephemeral = False
     if enemyid == 'ai':
         ephemeral = True
-    for status in battle[userid][mon]['statuses']:
-        message = message + grickle.status_hadler[status](battle[userid][mon], battle[enemyid][enemymon])
+    statuses = battle[userid][mon]['statuses'].copy()
+    for status in statuses:
+        message = message + grickle.status_handler[status](attacker=battle[userid][mon], defender=battle[enemyid][enemymon])
     if battle[userid][mon]['currhp'] <= 0:
         await interaction.response.send_message(message, ephemeral=ephemeral)
         await end_battle(interaction, enemyid, enemymon, mon, battles, data)
@@ -1667,7 +1665,7 @@ async def ai_turn(interaction: discord.Interaction, aimon: str, enemymon: str):
     battleid = str(data[enemyid]['battleid'])
     battle = battles[battleid]
     for status in battle[userid][aimon]['statuses']:
-        message = message + grickle.status_handler[status](battle[userid][aimon], battle[enemyid][enemymon])
+        message = message + grickle.status_handler[status](attacker=battle[userid][aimon], defender=battle[enemyid][enemymon])
     if battle[userid][aimon]['currhp'] <= 0:
         await interaction.followup.send(message, ephemeral=True)
         await end_battle(interaction, userid, enemymon, aimon, battles, data)

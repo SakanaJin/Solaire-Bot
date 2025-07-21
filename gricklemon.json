@@ -100,5 +100,40 @@
         "equiped": true
       }
     }
+  },
+  "Test Boss": {
+    "banner": "Normal",
+    "rarity": "Incandescent",
+    "basehp": 100,
+    "type": "Fire",
+    "statscales": {
+      "vit": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "str": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "dex": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "int": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "fth": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "adp": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "arc": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "res": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)",
+      "def": "floor(7 + 0.7 * lvl + 0.07 * lvl**2)"
+    },
+    "description": "This is a test boss",
+    "statuses": [],
+    "skills": {
+      "Skilltest": {
+        "basedmg": 100,
+        "rarity": "Incandescent",
+        "description": "This skill does some testing",
+        "scaling": {
+          "str": "S",
+          "dex": "S",
+          "int": "S",
+          "fth": "S",
+          "arc": "S"
+        },
+        "statuses": [],
+        "equiped": true
+      }
+    }
   }
 }

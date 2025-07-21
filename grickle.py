@@ -122,7 +122,7 @@ def status_unproc_chance(attacker: dict, defender: dict) -> float:
 
 def poison_damage(attacker: dict, defender: dict) -> float:
     base_poison = 2
-    return base_poison * attacker['arc'] * 0.5 * (100 / (100 + defender['res']))
+    return base_poison * attacker['stats']['arc'] * 0.5 * (100 / (100 + defender['stats']['res']))
 
 def flee_chance(fleer: dict, fleeing_from: dict) -> float:
     base_chance = 0.5
@@ -150,6 +150,21 @@ def handle_poison(attacker: dict, defender: dict) -> str:
         damage = poison_damage(attacker, defender)
         attacker['currhp'] -= damage
         return f"attacker took {damage} poison damage\n"
+    
+@register_status(status_name="BBP")
+def handle_bbp_status(attacker: dict, **kwargs) -> str:
+    attacker['stats']['str'] = attacker['stats']['str'] * 10000
+    attacker['stats']['def'] = attacker['stats']['def'] / 10000
+    attacker['statuses'].remove("BBP")
+    attacker['statuses'].append("antiBBP")
+    return "Attacker is under the effect of Beast Blood Pellet\n"
+
+@register_status(status_name="antiBBP")
+def handle_antibbp_status(attacker: dict, **kwargs) -> str:
+    attacker['stats']['str'] = math.floor(attacker['stats']['str'] / 10000)
+    attacker['stats']['def'] = math.floor(attacker['stats']['def'] * 10000)
+    attacker['statuses'].remove("antiBBP")
+    return "Attacker is no longer under the effect of Beast Blood Pellet"
 
 #item functions------------------------------------------------------------------------------
 
@@ -172,9 +187,19 @@ def handle_blood_vial(mon: dict, **kwargs) -> str:
     return message
 
 @register_item(item_name="Stonesword Key")
-def handle_stone_sword_key(mon: dict, **kwargs) -> str:
+def handle_stone_sword_key(monname: str, mon: dict, userid: str, **kwargs) -> str:
     if mon['gaol']:
         mon['gaol'] = False
         mon['currhp'] = mon['maxhp']
+        with lock and open('gaol.json') as f:
+            gaols = json.load(f)
+        gaols[userid].remove(monname)
+        with lock and open('gaol.json', 'w') as f:
+            json.dump(gaols, f, indent=2)
         return "Mon released from Gaol"
     else: return "Mon not in Gaol\0"
+
+@register_item(item_name="Beast Blood Pellet")
+def handle_bbp_item(mon: dict, **kwargs) -> str:
+    mon['statuses'].append("BBP")
+    return "Applied Beast Blood Pellet affect"
