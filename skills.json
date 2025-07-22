@@ -47,10 +47,10 @@
     "rarity": "Common",
     "description": "This skill does some testing",
     "scaling": {
-      "str": "S",
-      "dex": "S",
+      "str": "C",
+      "dex": "B",
       "int": "S",
-      "fth": "S",
+      "fth": "E",
       "arc": "S"
     },
     "statuses": []
