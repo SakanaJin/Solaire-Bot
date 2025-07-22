@@ -293,7 +293,7 @@ async def health_reset():
     with lock and open('user-mons.json', 'w') as f:
         json.dump(boxes, f, indent=2)
 
-@tasks.loop(hours=1)
+@tasks.loop(time=[datetime.time(hour=i, minute=0) for i in range(24)]) #every hour
 async def dungeon_updates():
     with lock and open('data.json') as f:
         data = json.load(f)
@@ -672,7 +672,7 @@ async def inventory(interaction):
     for item in inventories[userid]:
         message = message + f"{item}: {inventories[userid][item]}\n"
     if message == '':
-        await interaction.response.send_message("No items in inventory")
+        await interaction.response.send_message("No items in inventory", ephemeral=True)
         return
     await interaction.response.send_message(message, ephemeral=True)
 
