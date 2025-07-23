@@ -17,7 +17,7 @@
     },
     "description": "This is a test monster he be grickly",
     "skills": {
-      "testskill": {
+      "Testskill": {
         "basedmg": 50,
         "rarity": "Legendary",
         "description": "This skill does some testing",

@@ -4,6 +4,8 @@ import json
 import asyncio
 import re
 
+import grickle
+
 lock = asyncio.Lock()
 
 with lock and open('gricklemon.json') as f:
@@ -71,6 +73,11 @@ def main():
     stotab = tabview.add("Stock Editor")
     ttab = tabview.add("Typing Editor")
 
+    gtab.columnconfigure(0, weight=1)
+    gtab.rowconfigure(0, weight=1)
+    gtab_scroll = ctk.CTkScrollableFrame(master=gtab)
+    gtab_scroll.grid(row=0, column=0, sticky='nsew')
+
     btab.columnconfigure(0, weight=1)
     btab.rowconfigure(0, weight=1)
     btab_scroll = ctk.CTkScrollableFrame(master=btab)
@@ -78,8 +85,215 @@ def main():
 
     #gricklemon editor-------------------------------------------------------------------------
 
-    label_tab1 = ctk.CTkLabel(master=gtab, text="You're in Gricklemon Editor")
-    label_tab1.grid(row=0, column=0)
+    monrarity_list = ['Rare', 'Legendary', 'Incandescent']
+    monlvlscale_list = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    monlvlscale_label_dict = {}
+    monskills_labels_dict = {}
+    monskills_del_dict = {}
+    monstats_labels_dict = {}
+    monstats_entries_dict = {}
+
+    def mon_select_callback(mon):
+        global monskills_list
+        global monstat_growth_funcs
+        if mon == "new":
+            monname_entry.configure(textvariable=ctk.StringVar(master=gtab_scroll, value=""))
+            selected_monbanner.set("Normal")
+            selected_monrarity.set("Rare")
+            selected_montype.set("Fire")
+            monhp_entry.configure(textvariable=ctk.StringVar(master=gtab_scroll, value=""))
+            mondescription_text.delete('0.0', 'end')
+            monskills_list.clear()
+            render_monskills()
+            monstat_growth_funcs.clear()
+            for stat in stat_list:
+                for lvl in monlvlscale_list:
+                    monstats_entries_dict[stat][lvl].configure(textvariable=ctk.StringVar(master=gtab_scroll, value=""))
+            mon_save_create.configure(text="Create Gricklemon")
+            mon_save_create.configure(command=mon_create_callback)
+        else:
+            monname_entry.configure(textvariable=ctk.StringVar(master=gtab_scroll, value=mon))
+            selected_monbanner.set(mons[mon]['banner'])
+            selected_monrarity.set(mons[mon]['rarity'])
+            selected_montype.set(mons[mon]['type'])
+            monhp_entry.configure(textvariable=ctk.StringVar(master=gtab_scroll, value=mons[mon]['basehp']))
+            mondescription_text.delete('0.0', 'end')
+            mondescription_text.insert('0.0', mons[mon]['description'])
+            monskills_list.clear()
+            monskills_list.extend([skill for skill in mons[mon]['skills']])
+            render_monskills()
+            monstat_growth_funcs.clear()
+            monstat_growth_funcs.update({stat: grickle.make_growth_function(expr) for stat, expr in mons[mon]['statscales'].items()})
+            for stat in stat_list:
+                for lvl in monlvlscale_list:
+                    monstats_entries_dict[stat][lvl].configure(textvariable=ctk.StringVar(master=gtab_scroll, value=monstat_growth_funcs[stat](lvl)))
+            mon_save_create.configure(text="Save Changes")
+            mon_save_create.configure(command=mon_save_callback)
+
+    def monskill_select_callback(skill):
+        if skill in monskills_list or len(monskills_list) == 4:
+            return
+        monskills_list.append(skill)
+        render_monskills()
+
+    def monskill_del_callback(skill):
+        if len(monskills_list) == 1:
+            return
+        monskills_list.remove(skill)
+        render_monskills()
+
+    def mon_save_callback():
+        mon = mon_select.get()
+        new_monname = monname_entry.get()
+        if mon != new_monname and new_monname in mons:
+            return
+        new_monhp = int(monhp_entry.get())
+        new_description = mondescription_text.get('0.0', 'end')
+        if "" in (new_monname, new_monhp, new_description):
+            return
+        coeff_dict = {}
+        for stat in stat_list:
+            coeff_dict[stat] = np.polyfit(np.array(monlvlscale_list), np.array(sorted([int(statlvl.get()) for lvl, statlvl in monstats_entries_dict[stat].items()])), 2).tolist()
+        mons[new_monname] = {'banner': monbanner_select.get(), 'rarity': monrarity_select.get(), 'type': montype_select.get(), 'basehp': new_monhp, 'description': new_description, 'statscales': {stat: f"floor({round(coeff_dict[stat][0], 5)} * lvl**2 + {round(coeff_dict[stat][1], 5)} * lvl + {round(coeff_dict[stat][2], 2)})" for stat in stat_list}, 'skills': {skill: skills[skill] for skill in monskills_list}}
+        for skill in mons[new_monname]['skills']:
+            mons[new_monname]['skills'][skill]['equiped'] = True
+        if new_monname != mon:
+            del mons[mon]
+            monlist.remove(mon)
+            monlist.insert(0, new_monname)
+            mon_select.configure(values=monlist)
+            selected_mon.set(new_monname)
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+
+    def mon_create_callback():
+        monname = monname_entry.get()
+        monhp = int(monhp_entry.get())
+        description = mondescription_text.get('0.0', 'end')
+        if "" in (monname, monhp, description) or monname in mons:
+            return
+        coeff_dict = {}
+        for stat in stat_list:
+            coeff_dict[stat] = np.polyfit(np.array(monlvlscale_list), np.array(sorted([int(statlvl.get()) for lvl, statlvl in monstats_entries_dict[stat].items()])), 2).tolist()
+        mons[monname] = {'banner': monbanner_select.get(), 'rarity': monrarity_select.get(), 'type': montype_select.get(), 'basehp': monhp, 'description': description, 'statscales': {stat: f"floor({round(coeff_dict[stat][0], 5)} * lvl**2 + {round(coeff_dict[stat][1], 5)} * lvl + {round(coeff_dict[stat][2], 2)})" for stat in stat_list}, 'skills': {skill: skills[skill] for skill in monskills_list}}
+        for skill in mons[monname]['skills']:
+            mons[monname]['skills'][skill]['equiped'] = True
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+        monlist.insert(0, monname)
+        mon_select.configure(values=monlist)
+        selected_mon.set(monname)
+        mon_select_callback(monname)
+
+    selected_mon = ctk.StringVar(master=gtab_scroll, value=monlist[0])
+    mon_select = ctk.CTkOptionMenu(master=gtab_scroll, values=monlist, variable=selected_mon, command=mon_select_callback)
+    mon_select.grid(row=0, column=0, sticky='w')
+
+    mon_save_create = ctk.CTkButton(master=gtab_scroll, text="Save Changes", command=mon_save_callback)
+    mon_save_create.grid(row=0, column=2, sticky='w')
+
+    monname_label = ctk.CTkLabel(master=gtab_scroll, text="Name:")
+    monname_label.grid(row=1, column=0, sticky='w', pady=(10,0))
+
+    monname_entry = ctk.CTkEntry(master=gtab_scroll, textvariable=ctk.StringVar(master=gtab_scroll, value=mon_select.get()))
+    monname_entry.grid(row=2, column=0, sticky='w')
+
+    monbanner_label = ctk.CTkLabel(master=gtab_scroll, text="Banner:")
+    monbanner_label.grid(row=3, column=0, sticky='w', pady=(10,0))
+
+    selected_monbanner = ctk.StringVar(master=gtab_scroll, value=mons[mon_select.get()]['banner'])
+    monbanner_select = ctk.CTkOptionMenu(master=gtab_scroll, values=usebanner_list, variable=selected_monbanner)
+    monbanner_select.grid(row=4, column=0, sticky='w')
+
+    monrarity_label = ctk.CTkLabel(master=gtab_scroll, text='Rarity:')
+    monrarity_label.grid(row=5, column=0, sticky='w', pady=(10,0))
+
+    selected_monrarity = ctk.StringVar(master=gtab_scroll, value=mons[mon_select.get()]['rarity'])
+    monrarity_select = ctk.CTkOptionMenu(master=gtab_scroll, values=monrarity_list, variable=selected_monrarity)
+    monrarity_select.grid(row=6, column=0, sticky='w')
+
+    montype_label = ctk.CTkLabel(master=gtab_scroll, text='Type:')
+    montype_label.grid(row=7, column=0, sticky='w', pady=(10,0))
+
+    selected_montype = ctk.StringVar(master=gtab_scroll, value=mons[mon_select.get()]['type'])
+    montype_select = ctk.CTkOptionMenu(master=gtab_scroll, values=list(typings.keys()), variable=selected_montype)
+    montype_select.grid(row=8, column=0, sticky='w')
+
+    monhp_label = ctk.CTkLabel(master=gtab_scroll, text='Base Hp:')
+    monhp_label.grid(row=9, column=0, sticky='w', pady=(10,0))
+
+    monhp_entry = ctk.CTkEntry(master=gtab_scroll, validate="key", validatecommand=(valid_num, "%P"), textvariable=ctk.StringVar(master=gtab_scroll, value=mons[mon_select.get()]['basehp']))
+    monhp_entry.grid(row=10, column=0, sticky='w')
+
+    mondescription_label = ctk.CTkLabel(master=gtab_scroll, text='Description:')
+    mondescription_label.grid(row=11, column=0, sticky='w', pady=(10,0))
+
+    mondescription = mons[mon_select.get()]['description']
+    mondescription_text = ctk.CTkTextbox(master=gtab_scroll)
+    mondescription_text.insert('0.0', mondescription)
+    mondescription_text.grid(row=12, column=0, columnspan=2, sticky='nsew')
+
+    monskills_label = ctk.CTkLabel(master=gtab_scroll, text="Skills:")
+    monskills_label.grid(row=13, column=0, sticky='w', pady=(10,0))
+
+    selected_monskill = ctk.StringVar(master=gtab_scroll, value=list(skills.keys())[0])
+    monskill_select = ctk.CTkOptionMenu(master=gtab_scroll, values=list(skills.keys()), variable=selected_monskill, command=monskill_select_callback)
+    monskill_select.grid(row=13, column=1, sticky='w')
+
+    monskills_scroll = ctk.CTkScrollableFrame(master=gtab_scroll)
+    monskills_scroll.grid(row=14, column=0, columnspan=2, sticky='nsew')
+    monskills_scroll.grid_columnconfigure((0,1), weight=1)
+
+    global monskills_list
+    monskills_list = [skill for skill in mons[mon_select.get()]['skills']]
+
+    def render_monskills():
+        for skill in monskills_labels_dict:
+            monskills_labels_dict[skill].destroy()
+        monskills_labels_dict.clear()
+        for skill in monskills_del_dict:
+            monskills_del_dict[skill].destroy()
+        monskills_del_dict.clear()
+        row = 0
+        for skill in monskills_list:
+            monskills_labels_dict[skill] = ctk.CTkLabel(master=monskills_scroll, text=f'{skill}:')
+            monskills_labels_dict[skill].grid(row=row, column=0, sticky='w', pady=(10,0))
+
+            monskills_del_dict[skill] = ctk.CTkButton(master=monskills_scroll, text='Delete', fg_color='red', command=lambda s=skill: monskill_del_callback(s))
+            monskills_del_dict[skill].grid(row=row, column=1, sticky='w', pady=(10,0))
+
+            row += 1
+    render_monskills()
+
+    monstatscale_label = ctk.CTkLabel(master=gtab_scroll, text='Stat Scales:')
+    monstatscale_label.grid(row=15, column=0, sticky='w', pady=(10,0))
+
+    col = 1
+    for lvl in monlvlscale_list:
+        monlvlscale_label_dict[lvl] = ctk.CTkLabel(master=gtab_scroll, text=f'lvl: {lvl}')
+        monlvlscale_label_dict[lvl].grid(row=15, column=col, sticky='w', pady=(10,0))
+
+        col += 1
+
+    global monstat_growth_funcs
+    monstat_growth_funcs = {stat: grickle.make_growth_function(expr) for stat, expr in mons[mon_select.get()]['statscales'].items()}
+
+    row = 16
+    for stat in stat_list:
+        col = 0 
+        monstats_labels_dict[stat] = ctk.CTkLabel(master=gtab_scroll, text=f'{stat}: ')
+        monstats_labels_dict[stat].grid(row=row, column=col, sticky='w', pady=(10,0))
+
+        col+=1
+
+        monstats_entries_dict[stat] = {}
+        for lvl in monlvlscale_list:
+            monstats_entries_dict[stat][lvl] = ctk.CTkEntry(master=gtab_scroll, validate="key", validatecommand=(valid_num, "%P"), textvariable=ctk.StringVar(master=gtab_scroll, value=str(monstat_growth_funcs[stat](lvl))))
+            monstats_entries_dict[stat][lvl].grid(row=row, column=col, sticky='w', pady=(10,0))
+
+            col += 1
+
+        row += 1
 
     #skill editor---------------------------------------------------------------------------------------
 
@@ -127,7 +341,7 @@ def main():
         new_skillname = skillname_entry.get()
         if new_skillname != skill and new_skillname in skills:
             return
-        new_skillbasedmg = skillbasedmg_entry.get()
+        new_skillbasedmg = int(skillbasedmg_entry.get())
         new_skilldescription = skilldescription_textbox.get('0.0', 'end')
         if "" in (new_skillname, new_skillbasedmg, new_skilldescription):
             return
@@ -143,7 +357,7 @@ def main():
 
     def skill_create_callback():
         skillname = skillname_entry.get()
-        skillbasedmg = skillbasedmg_entry.get()
+        skillbasedmg = int(skillbasedmg_entry.get())
         description = skilldescription_textbox.get('0.0', 'end')
         if "" in (skillname, skillbasedmg, description) or skillname in skills:
             return
@@ -272,7 +486,7 @@ def main():
         new_name = itemname_entry.get()
         if new_name != item and new_name in items:
             return
-        new_price = itemprice_entry.get()
+        new_price = float(itemprice_entry.get())
         new_rarity = itemrarity_select.get()
         new_description = itemdescription_textbox.get("0.0", "end")
         if "" in (new_name, new_price, new_description):
@@ -298,7 +512,7 @@ def main():
         
     def item_create_callback():
         itemname = itemname_entry.get()
-        itemprice = itemprice_entry.get()
+        itemprice = float(itemprice_entry.get())
         rarity = itemrarity_select.get()
         description = itemdescription_textbox.get("0.0", "end")
         if "" in (itemname, itemprice, description) or itemname in items:
@@ -377,7 +591,7 @@ def main():
 
     #boss editor-----------------------------------------------------------------------------------------
 
-    bosskey_list = [key for key in items if items[key]['rarity'] == 'key-item']
+    bosskey_list = [key for key in items if items[key]['rarity'] == 'Key-Item']
     bossstat_label_dict = {}
     bossstat_entry_dict = {}
     bossskills_label_dict = {}
@@ -429,8 +643,8 @@ def main():
         new_bossname = bossname_entry.get()
         if (boss != new_bossname and new_bossname in bosses) or len(bossskills_list) == 0:
             return
-        new_bosslvl = bosslvl_entry.get()
-        new_bosshp = bosshp_entry.get()
+        new_bosslvl = int(bosslvl_entry.get())
+        new_bosshp = int(bosshp_entry.get())
         new_bossdescription = bossdescription_textbox.get('0.0', 'end')
         new_bossentrance = bossentrance_text.get('0.0', 'end')
         new_bossmonumentname = bossmonumentname_entry.get()
@@ -451,8 +665,8 @@ def main():
 
     def boss_create_callback():
         bossname = bossname_entry.get()
-        bosslvl = bosslvl_entry.get()
-        bosshp = bosshp_entry.get()
+        bosslvl = int(bosslvl_entry.get())
+        bosshp = int(bosshp_entry.get())
         bossdescription = bossdescription_textbox.get('0.0', 'end')
         bossentrance = bossentrance_text.get('0.0', 'end')
         bossmonumentname = bossmonumentname_entry.get()
@@ -782,7 +996,7 @@ def main():
 
     def stock_create_callback():
         stockname = stockname_entry.get()
-        stockprice = stockprice_entry.get()
+        stockprice = float(stockprice_entry.get())
         if "" in (stockname, stockprice) or stockname in stocks:
             return
         stocks[stockname] = {"price": stockprice, "favorlvl": "none"}
