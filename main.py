@@ -1374,7 +1374,7 @@ async def end_battle(interaction: discord.Interaction, winnerid: str, winner: st
             with lock and open('user-inventories.json', 'w') as f:
                 json.dump(inventories, f, indent=2)
             message = message + f"\n{loser} dropped {drop}"
-        if losermon.get('monument') != None: #add in obtaining the boss mon here
+        if losermon.get('monument') != None:
             with lock and open('user-monuments.json') as f:
                 user_monuments = json.load(f)
             monumentname = list(losermon['monument'].keys())[0]
