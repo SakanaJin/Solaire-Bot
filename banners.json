@@ -4,10 +4,7 @@
   "Normal": {
     "rarity": "Common",
     "description": "The standard banner when nothings happening",
-    "lvlweights": [
-      5,
-      2
-    ],
+    "lvlweights": [5, 2],
     "drop-pool": {
       "none": "none",
       "Estus": {

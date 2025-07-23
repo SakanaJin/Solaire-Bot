@@ -1275,7 +1275,7 @@ async def battle(interaction, mon: str):
             chosen_boi = random.choice(list(banner_mons_legendary.keys()))
     with lock and open('battles.json') as f:
         battles = json.load(f)
-    enemylvl = random.randint(max(box[mon]['lvl'] - banners[active_banner]['lvlweights'][0], 1), box[mon]['lvl'] + banners[active_banner]['lvlweights'][1])
+    enemylvl = random.randint(max(box[mon]['lvl'] - min(banners[active_banner]['lvlweights']), 1), box[mon]['lvl'] + max(banners[active_banner]['lvlweights']))
     battles[battles['nextid']] = {userid: {mon: box[mon]}, "ai": {chosen_boi: mon_to_usermon(mons[chosen_boi], lvl=enemylvl)}, "turn": userid}
     box[mon]['away'] = True
     data[userid]['battleid'] = battles['nextid']

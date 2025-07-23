@@ -1,0 +1,14 @@
+{
+  "Fire": {
+    "Water": 1.3,
+    "Grass": 0.7
+  },
+  "Water": {
+    "Fire": 0.7,
+    "Grass": 1.3
+  },
+  "Grass": {
+    "Fire": 1.3,
+    "Water": 0.7
+  }
+}

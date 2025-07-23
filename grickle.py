@@ -8,20 +8,8 @@ lock = asyncio.Lock()
 
 aeval = Interpreter()
 
-type_adv = { #defending then attacker
-    "Fire": {
-        "Water": 1.3,
-        "Grass": 0.7
-    },
-    "Water": {
-        "Fire": 0.7,
-        "Grass": 1.3 
-    },
-    "Grass": {
-        "Fire": 0.7,
-        "Water": 1.3
-    }
-}
+with lock and open('typing.json') as f:
+    type_adv = json.load(f) #defending then attacker
 
 scaling = {"-": 0, "E": 0.25, "D": 0.6, "C": 0.9, "B": 1.4, "A": 1.75, "S": 2.2}
 
