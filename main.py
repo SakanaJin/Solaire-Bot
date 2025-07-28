@@ -428,7 +428,7 @@ async def sync(ctx):
 @bot.command()
 async def gsync(ctx):
     """global syncs commands"""
-    if ctx.author.name != ADMIN:
+    if ctx.author.id != ADMIN:
         await ctx.send("Admin only")
         return
     await bot.tree.sync()
