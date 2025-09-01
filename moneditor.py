@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import tkinter.messagebox as mb
 import numpy as np
 import json
 import asyncio
@@ -165,6 +166,10 @@ def main():
             selected_mon.set(new_monname)
         with lock and open('gricklemon.json', 'w') as f:
             json.dump(mons, f, indent=2)
+        if mon in bosses:
+            bosses[new_monname] = bosses.pop(mon)
+            with lock and open('boss-mons.json', 'w') as f:
+                json.dump(bosses, f, indent=2)
 
     def mon_create_callback():
         monname = monname_entry.get()
@@ -185,12 +190,31 @@ def main():
         selected_mon.set(monname)
         mon_select_callback(monname)
 
+    def mon_delete_callback():
+        monname = mon_select.get()
+        confirm_delete = mb.askokcancel("Confirm Delete", f"Are you sure you want to delete {monname}? This will delete any bossmons by the same name.")
+        if not confirm_delete:
+            return
+        del mons[monname]
+        monlist.remove(monname)
+        mon_select_callback(monlist[0])
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+        if monname in bosses.keys():
+            del bosses[monname]
+            bosslist.remove(monname)
+            with lock and open('boss-mons.json', 'w') as f:
+                json.dump(bosses, f, indent=2)
+    
     selected_mon = ctk.StringVar(master=gtab_scroll, value=monlist[0])
     mon_select = ctk.CTkOptionMenu(master=gtab_scroll, values=monlist, variable=selected_mon, command=mon_select_callback)
     mon_select.grid(row=0, column=0, sticky='w')
 
     mon_save_create = ctk.CTkButton(master=gtab_scroll, text="Save Changes", command=mon_save_callback)
     mon_save_create.grid(row=0, column=2, sticky='w')
+
+    mon_delete = ctk.CTkButton(master=gtab_scroll, text="Delete Mon", fg_color='red', command=mon_delete_callback)
+    mon_delete.grid(row=0, column=4, sticky='w')
 
     monname_label = ctk.CTkLabel(master=gtab_scroll, text="Name:")
     monname_label.grid(row=1, column=0, sticky='w', pady=(10,0))
@@ -354,6 +378,17 @@ def main():
             selected_skill.set(new_skillname)
         with lock and open('skills.json', 'w') as f:
             json.dump(skills, f, indent=2)
+        for mon in mons:
+            if skill in mons[mon]['skills']:
+                del mons[mon]['skills'][skill]
+                mons[mon]['skills'][new_skillname] = skills[new_skillname]
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+        for boss in bosses:
+            if skill in bosses[boss]['skills']:
+                bosses[boss]['skills'][new_skillname] = bosses[boss]['skills'].pop(skill)
+        with lock and open('boss-mons.json', 'w') as f:
+            json.dump(bosses, f, indent=2)
 
     def skill_create_callback():
         skillname = skillname_entry.get()
@@ -369,9 +404,33 @@ def main():
         selected_skill.set(skillname)
         skill_select_callback(skillname)
 
+    def skill_delete_callback():
+        skillname = skill_select.get()
+        confirm_delete = mb.askokcancel('Delete Skill', f'Are you sure you want to delete {skillname}? This will also delete the skill for any gricklemons and bossmons.')
+        if not confirm_delete:
+            return
+        del skills[skillname]
+        skilllist.remove(skillname)
+        skill_select_callback(skilllist[0])
+        with lock and open('skills.json', 'w') as f:
+            json.dump(skills, f, indent=2)
+        for mon in mons:
+            if skillname in mons[mon]['skills'].keys():
+                del mons[mon]['skills'][skillname]
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+        for boss in bosses:
+            if skillname in bosses[boss]['skills'].keys():
+                del bosses[boss]['skills'][skillname]
+        with lock and open('boss-mons.json', 'w') as f:
+            json.dump(bosses, f, indent=2)
+
     selected_skill = ctk.StringVar(master=stab, value=skilllist[0])
     skill_select = ctk.CTkOptionMenu(master=stab, values=skilllist, command=skill_select_callback, variable=selected_skill)
     skill_select.grid(row=0, column=0, sticky='w')
+
+    skill_delete = ctk.CTkButton(master=stab, text='Delete Skill', fg_color='red', command=skill_delete_callback)
+    skill_delete.grid(row=0, column=2, sticky='w')
 
     skillname_label = ctk.CTkLabel(master=stab, text="Name:")
     skillname_label.grid(row=1, column=0, sticky='w', pady=(10,0))
@@ -509,6 +568,12 @@ def main():
             selected_item.set(new_name)
         with lock and open('items.json', 'w') as f:
             json.dump(items, f, indent=2)
+        for banner in banners:
+            if item in banners[banner]['drop-pool']:
+                del banners[banner]['drop-pool'][item]
+                banners[banner]['drop-pool'][new_name] = items[new_name]
+        with lock and open('banners.json', 'w') as f:
+            json.dump(banners, f, indent=2)
         
     def item_create_callback():
         itemname = itemname_entry.get()
@@ -533,10 +598,29 @@ def main():
         item_select.configure(values=itemlist)
         selected_item.set(itemname)
         item_select_callback(itemname)
+
+    def item_delete_callback():
+        itemname = item_select.get()
+        confirm_delete = mb.askokcancel('Delete Item', f'Are you sure you want to delete {itemname}? This will also delete this item for banners.')
+        if not confirm_delete:
+            return
+        del items[itemname]
+        itemlist.remove(itemname)
+        item_select_callback(itemlist[0])
+        with lock and open('items.json', 'w') as f:
+            json.dump(items, f, indent=2)
+        for banner in banners:
+            if itemname in banners[banner]['drop-pool']:
+                del banners[banner]['drop-pool'][itemname]
+        with lock and open('banners.json', 'w') as f:
+            json.dump(banners, f, indent=2)
         
     selected_item = ctk.StringVar(master=itab, value=itemlist[0])
     item_select = ctk.CTkOptionMenu(master=itab, values=itemlist, command=item_select_callback, variable=selected_item)
     item_select.grid(row=0, column=0, sticky='w')
+
+    item_delete = ctk.CTkButton(master=itab, text='Delete Item', fg_color='red', command=item_delete_callback)
+    item_delete.grid(row=0, column=2, sticky='w')
     
     itemname_label = ctk.CTkLabel(master=itab, text="Name:")
     itemname_label.grid(row=1, column=0, sticky='w', pady=(10, 0))
@@ -684,9 +768,23 @@ def main():
         selected_boss.set(bossname)
         boss_select_callback(bossname)
 
+    def boss_delete_callback():
+        bossname = boss_select.get()
+        confirm_delete = mb.askokcancel('Delete Boss', f'Are you sure you want to delete {bossname}?')
+        if not confirm_delete:
+            return
+        del bosses[bossname]
+        bosslist.remove(bossname)
+        boss_select_callback(bosslist[0])
+        with lock and open('boss-mons.json', 'w') as f:
+            json.dump(bosses, f, indent=2)
+
     selected_boss = ctk.StringVar(master=btab_scroll, value=bosslist[0])
     boss_select = ctk.CTkOptionMenu(master=btab_scroll, values=bosslist, variable=selected_boss, command=boss_select_callback)
     boss_select.grid(row=0, column=0, sticky='w')
+
+    boss_delete = ctk.CTkButton(master=btab_scroll, text='Delete Boss', fg_color='red', command=boss_delete_callback)
+    boss_delete.grid(row=0, column=2, sticky='w')
 
     bossname_label = ctk.CTkLabel(master=btab_scroll, text="Name:")
     bossname_label.grid(row=1, column=0, sticky='w', pady=(10,0))
@@ -875,6 +973,21 @@ def main():
             selected_banner.set(newbannername)
         with lock and open('banners.json', 'w') as f:
             json.dump(banners, f, indent=2)
+        for skill in skills:
+            if banner == skills[skill]['banner']:
+                skills[skill]['banner'] = newbannername
+        with lock and open('skills.json', 'w') as f:
+            json.dump(skills, f, indent=2)
+        for mon in mons:
+            if banner == mons[mon]['banner']:
+                mons[mon]['banner'] = newbannername
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+        for boss in bosses:
+            if banner == bosses[boss]['banner']:
+                bosses[boss]['banner'] = newbannername
+        with lock and open('boss-mons.json', 'w') as f:
+            json.dump(bosses, f, indent=2)
 
     def banner_create_callback():
         bannername = bannername_entry.get()
@@ -893,9 +1006,42 @@ def main():
         selected_banner.set(bannername)
         banner_select_callback(bannername)
 
+    def banner_delete_callback():
+        bannername = banner_select.get()
+        confirm_delete = mb.askokcancel("Delete Banner", f'Are you sure you want to delete {bannername}? This will delete everything in this banner. (bosses, mons, etc.)')
+        if not confirm_delete:
+            return
+        del banners[bannername]
+        bannerlist.remove(bannername)
+        usebanner_list.remove(bannername)
+        banner_select_callback(bannerlist[0])
+        with lock and open('banners.json', 'w') as f:
+            json.dump(banners, f, indent=2)
+        for mon in mons:
+            if mons[mon]['banner'] == bannername:
+                del mons[mon]
+                monlist.remove(mon)
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+        for boss in bosses:
+            if bosses[boss]['banner'] == bannername:
+                del bosses[boss]
+                bosslist.remove(boss)
+        with lock and open('boss-mons.json', 'w') as f:
+            json.dump(bosses, f, indent=2)
+        for skill in skills:
+            if skills[skill]['banner'] == bannername:
+                del skills[skill]
+                skilllist.remove(skill)
+        with lock and open('skills.json', 'w') as f:
+            json.dump(skills, f, indent=2)
+
     selected_banner = ctk.StringVar(master=bantab, value=bannerlist[0])
     banner_select = ctk.CTkOptionMenu(master=bantab, values=bannerlist, variable=selected_banner, command=banner_select_callback)
     banner_select.grid(row=0, column=0, sticky='w')
+
+    banner_delete = ctk.CTkButton(master=bantab, text='Delete Banner', fg_color='red', command=banner_delete_callback)
+    banner_delete.grid(row=0, column=2, sticky='w')
 
     bannername_label = ctk.CTkLabel(master=bantab, text="Name:")
     bannername_label.grid(row=1, column=0, sticky='w', pady=(10,0))
@@ -1007,9 +1153,26 @@ def main():
         selected_stock.set(stockname)
         stock_select_callback(stockname)
 
+    def stock_delete_callback():
+        stockname = stock_select.get()
+        confirm_delete = mb.askokcancel('Delete Stock', f'Are you sure you want to delete {stockname}?')
+        if not confirm_delete:
+            return
+        del stocks[stockname]
+        stocklist.remove(stockname)
+        stock_select_callback(stocklist[0])
+        with lock and open('stocks.json', 'w') as f:
+            json.dump(stocks, f, indent=2)
+
     selected_stock = ctk.StringVar(value=stocklist[0])
     stock_select = ctk.CTkOptionMenu(master=stotab, values=stocklist, command=stock_select_callback, variable=selected_stock)
     stock_select.grid(row=0, column=0, sticky='w')
+
+    stock_spacer1 = ctk.CTkLabel(master=stotab, text="", width=50)
+    stock_spacer1.grid(row=0, column=1)
+
+    stock_delete = ctk.CTkButton(master=stotab, text='Delete Stock', fg_color='red', command=stock_delete_callback)
+    stock_delete.grid(row=0, column=2, sticky='w')
 
     stockname_label = ctk.CTkLabel(master=stotab, text="Name:")
     stockname_label.grid(row=1, column=0, sticky='w', pady=(10, 0))
@@ -1140,6 +1303,16 @@ def main():
             selected_type.set(newtype_name)
         with lock and open('typing.json', 'w') as f:
             json.dump(typings, f, indent=2)
+        for mon in mons:
+            if mons[mon]['type'] == typename:
+                mons[mon]['type'] = newtype_name
+        with lock and open('gricklemon.json', 'w') as f:
+            json.dump(mons, f, indent=2)
+        for boss in bosses:
+            if bosses[boss]['type'] == typename:
+                bosses[boss]['type'] = newtype_name
+        with lock and open('boss-mons.json', 'w') as f:
+            json.dump(bosses, f, indent=2)
 
     def type_create_callback():
         typename = typename_entry.get()

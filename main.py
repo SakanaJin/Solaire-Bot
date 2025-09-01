@@ -344,7 +344,6 @@ async def dungeon_updates():
 async def banner_check():
     with lock and open('banners.json') as f:
         banners = json.load(f)
-    print(datetime.date.today())
     if datetime.date.today().strftime("%Y-%m-%d") != banners['change-date']:
         return
     banners['change-date'] = (datetime.date.today() + datetime.timedelta(days=14)).strftime("%Y-%m-%d")

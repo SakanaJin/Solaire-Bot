@@ -62,7 +62,10 @@
           "fth": "S",
           "arc": "S"
         },
-        "statuses": ["Poison", "Paralysis"],
+        "statuses": [
+          "Poison",
+          "Paralysis"
+        ],
         "equiped": true
       }
     }
