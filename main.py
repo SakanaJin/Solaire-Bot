@@ -543,7 +543,7 @@ async def whosagoodboy(interaction, goodboy: discord.User, money: int):
     await interaction.response.send_message(f"Ahh, {goodboy}… truly, you are a good boy indeed! Rare is the soul who shines with such brilliance. Take this reward of {money} Sunlight — a symbol of my esteem. May it guide you ever closer to your own sun!")
     with lock and open('data.json') as f:
         users = json.load(f)
-    users[goodboy.id]['sunlight'] += money
+    users[str(goodboy.id)]['sunlight'] += money
     with lock and open('data.json', 'w') as f:
         json.dump(users, f, indent=2)
 
