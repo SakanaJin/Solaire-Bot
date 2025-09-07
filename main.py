@@ -12,6 +12,8 @@ import datetime
 import asyncio
 import typing
 import math
+import csv
+import matplotlib.pyplot as plt
 
 import grickle
 
@@ -205,6 +207,11 @@ async def stock_check():
     message = f"@everyone\nSunlight stock market report - {datetime.date.today()}\n"
     with open('stocks.json') as f: # might need a lock
         stocks = json.load(f)
+    with open('stocksdata.csv') as f:
+        stocksdata = [row for row in csv.reader(f)]
+    stocksdata[0].append(datetime.date.today().strftime("%Y-%m-%d"))
+    if len(stocksdata[0]) > 101:
+        stocksdata[0].pop(1)
     if datetime.date.today().weekday() in (0, 4): # monday and thursday
         for stock in stocks:
             stocks[stock]['favorlvl'] = random.choices(stock_favorlvls, weights=[5,25,40,25,5])[0]
@@ -222,13 +229,26 @@ async def stock_check():
                 percent_change = random.uniform(-0.02, 0.20)
         stocks[stock]['price'] += stocks[stock]['price'] * percent_change
         stocks[stock]['price'] = round(stocks[stock]['price'], 2)
+        price = stock[stock]['price']
+        for stockdata in stocksdata:
+            if stockdata[0] == stock:
+                stockdata.append(price)
+                found = True
+        if not found:
+            tempdata = [0 for _ in range(stockdata[0]-1)]
+            tempdata.insert(0, stock)
+            tempdata.append(price)
+            stocksdata.append(tempdata)
         sign = ""
         if percent_change > 0:
             sign = "+"
-        message = message + f"{stock}: {stocks[stock]['price']} sunlight ({sign}{round(percent_change * 100, 2)}%)\n"
+        message = message + f"{stock}: {price} sunlight ({sign}{round(percent_change * 100, 2)}%)\n"
         await asyncio.sleep(1)
     with open('stocks.json', 'w') as f: # might need a lock
         json.dump(stocks, f, indent=2)
+    with open('stocksdata.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(stocksdata)
     await general.send(message)
 
 @tasks.loop(time=datetime.time(hour=17, minute=30)) #1230 cdt -> 1730 utc
@@ -650,6 +670,30 @@ async def sellstock(interaction, stockname: str, amount: str = "1"):
     with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
     await interaction.response.send_message(f"Sold {amount} shares of {stockname} for {total} Sunlight, Balance: {data[userid]['sunlight']} Sunlight", ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(stockname=stockname_autocomplete)
+async def stockgraph(interaction, stockname: str):
+    """Shows graph for stock"""
+    with open('stocksdata.csv') as f:
+        data = [row for row in csv.reader(f)]
+    for stockdata in data:
+        if stockdata[0] == 'name':
+            dates = stockdata
+            dates.remove('name')
+        if stockdata[0] == stockname:
+            stock = stockdata
+            stock.remove(stockname)
+            break
+    plt.plot(dates, [float(price) for price in stock], 'o-')
+    plt.title(stockname)
+    plt.xlabel("Date")
+    plt.ylabel("Price")
+    plt.savefig('stockgraph.png')
+    plt.cla()
+    with open('stockgraph.png', 'rb') as f:
+        graph = discord.File(f)
+    await interaction.response.send_message(f"Graph for {stockname}", file=graph, ephemeral=True)
 
 @bot.tree.command(guild=guild)
 async def resetstocks(interaction):

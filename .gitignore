@@ -108,6 +108,12 @@ gaol.json
 dungeon.json
 user-monuments.json
 
+# csv data files
+stocksdata.csv
+
+# png files
+*.png
+
 #testing py files
 test.py
 guitest.py
