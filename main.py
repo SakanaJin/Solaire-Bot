@@ -12,7 +12,6 @@ import datetime
 import asyncio
 import typing
 import math
-import csv
 import matplotlib.pyplot as plt
 
 import grickle
@@ -125,6 +124,16 @@ async def handle_gen_dungeon(file: str, members, **kwargs) -> None:
 async def handle_gen_monuments(file: str, members, **kwargs) -> None:
     await id_dict_files(file=file, members=members)
 
+@register_file_generator(file_name="stocksdata.json")
+async def handle_gen_stocksdata(file: str, **kwargs) -> None:
+    with lock and open('stocks.json') as f:
+        stocks = json.load(f)
+    stocksdata = {"dates": datetime.date.today().strftime("%Y-%m-%d")}
+    for stock in stocks:
+        stocksdata[stock] = [stocks[stock]['price']]
+    with lock and open('stocksdata.json', 'w') as f:
+        json.dump(stocksdata, f, indent=2)
+
 #events-----------------------------------------------------------------------------------------------
 
 @bot.event
@@ -207,11 +216,12 @@ async def stock_check():
     message = f"@everyone\nSunlight stock market report - {datetime.date.today()}\n"
     with open('stocks.json') as f: # might need a lock
         stocks = json.load(f)
-    with open('stocksdata.csv') as f:
-        stocksdata = [row for row in csv.reader(f)]
-    stocksdata[0].append(datetime.date.today().strftime("%Y-%m-%d"))
-    if len(stocksdata[0]) > 101:
-        stocksdata[0].pop(1)
+    with open('stocksdata.json') as f:
+        stocksdata = json.load(f)
+    stocksdata['dates'].append(datetime.date.today().strftime("%Y-%m-%d"))
+    if len(stocksdata['dates']) > 101:
+        for key in stocksdata:
+            stocksdata[key].pop(0)
     if datetime.date.today().weekday() in (0, 4): # monday and thursday
         for stock in stocks:
             stocks[stock]['favorlvl'] = random.choices(stock_favorlvls, weights=[5,25,40,25,5])[0]
@@ -230,15 +240,7 @@ async def stock_check():
         stocks[stock]['price'] += stocks[stock]['price'] * percent_change
         stocks[stock]['price'] = round(stocks[stock]['price'], 2)
         price = stock[stock]['price']
-        for stockdata in stocksdata:
-            if stockdata[0] == stock:
-                stockdata.append(price)
-                found = True
-        if not found:
-            tempdata = [0 for _ in range(stockdata[0]-1)]
-            tempdata.insert(0, stock)
-            tempdata.append(price)
-            stocksdata.append(tempdata)
+        stocksdata[stock].append(price)
         sign = ""
         if percent_change > 0:
             sign = "+"
@@ -246,9 +248,8 @@ async def stock_check():
         await asyncio.sleep(1)
     with open('stocks.json', 'w') as f: # might need a lock
         json.dump(stocks, f, indent=2)
-    with open('stocksdata.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerows(stocksdata)
+    with open('stocksdata.json', 'w') as f:
+        json.dump(stocksdata, f, indent=2)
     await general.send(message)
 
 @tasks.loop(time=datetime.time(hour=17, minute=30)) #1230 cdt -> 1730 utc
@@ -557,6 +558,7 @@ async def ticket(interaction, description: str):
 
 @bot.tree.command(guild=guild)
 async def whosagoodboy(interaction, goodboy: discord.User, money: int):
+    """You are yes you are :3"""
     if interaction.user.id != ADMIN:
         await interaction.response.send_message("Admin only bub", epehmeral=True)
         return
@@ -675,17 +677,9 @@ async def sellstock(interaction, stockname: str, amount: str = "1"):
 @app_commands.autocomplete(stockname=stockname_autocomplete)
 async def stockgraph(interaction, stockname: str):
     """Shows graph for stock"""
-    with open('stocksdata.csv') as f:
-        data = [row for row in csv.reader(f)]
-    for stockdata in data:
-        if stockdata[0] == 'name':
-            dates = stockdata
-            dates.remove('name')
-        if stockdata[0] == stockname:
-            stock = stockdata
-            stock.remove(stockname)
-            break
-    plt.plot(dates, [float(price) for price in stock], 'o-')
+    with lock and open('stocksdata.json') as f:
+        stocksdata = json.load(f)
+    plt.plot(stocksdata['dates'], stocksdata[stockname], 'o-')
     plt.title(stockname)
     plt.xlabel("Date")
     plt.ylabel("Price")
@@ -768,7 +762,6 @@ async def shop(interaction):
     for item in shop_items:
         embed = discord.Embed(title=item, description=shop_items[item]['description'], color=rarity_colors[shop_items[item]['rarity']])
         embed.add_field(name="Consumable", value=shop_items[item]['consumable'], inline=True)
-        embed.add_field(name="Equipable", value=shop_items[item]['equipable'], inline= True)
         embed.add_field(name="Price", value=f"{shop_items[item]['price']} Sunlight", inline=True)
         embeds.append(embed)
     await interaction.response.send_message(embeds=embeds, ephemeral=True)
@@ -1872,6 +1865,7 @@ async def dungeoninfo(interaction):
 
 @bot.tree.command(guild=guild)
 async def banner(interaction, name: str = "active"):
+    """Shows banner"""
     with lock and open('banners.json') as f:
         banners = json.load(f)
     if name not in banners or name != "active":

@@ -1279,21 +1279,15 @@ def main():
         newtype_name = typename_entry.get()
         if (typename != newtype_name and newtype_name in typings) or newtype_name == "":
             return
+        if typename != newtype_name:
+            typings[newtype_name] = {}
         for mtype in typeweak_list:
-            if newtype_name not in typings:
-                typings[newtype_name] = {}
             typings[newtype_name][mtype] = 1.3
         for mtype in typestrong_list:
-            if newtype_name not in typings:
-                typings[newtype_name] = {}
             typings[newtype_name][mtype] = 0.7
         for mtype in typedefenseless_list:
-            if newtype_name not in typings:
-                typings[newtype_name] = {}
             typings[newtype_name][mtype] = 1.7
         for mtype in typeimmune_list:
-            if newtype_name not in typings:
-                typings[newtype_name] = {}
             typings[newtype_name][mtype] = 0.3
         if newtype_name != typename:
             del typings[typename]
@@ -1318,21 +1312,14 @@ def main():
         typename = typename_entry.get()
         if typename == "":
             return
+        typings[typename] = {}
         for mtype in typeweak_list:
-            if typename not in typings:
-                typings[typename] = {}
             typings[typename][mtype] = 1.3
         for mtype in typestrong_list:
-            if typename not in typings:
-                typings[typename] = {}
             typings[typename][mtype] = 0.7
         for mtype in typedefenseless_list:
-            if typename not in typings:
-                typings[typename] = {}
             typings[typename][mtype] = 1.7
         for mtype in typeimmune_list:
-            if typename not in typings:
-                typings[typename] = {}
             typings[typename][mtype] = 0.3
         with lock and open('typing.json', 'w') as f:
             json.dump(typings, f, indent=2)

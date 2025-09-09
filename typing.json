@@ -10,5 +10,6 @@
   "Grass": {
     "Fire": 1.3,
     "Water": 0.7
-  }
+  },
+  "Basic": {}
 }

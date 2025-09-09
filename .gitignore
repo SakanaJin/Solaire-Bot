@@ -107,9 +107,7 @@ user-skills.json
 gaol.json
 dungeon.json
 user-monuments.json
-
-# csv data files
-stocksdata.csv
+stocksdata.json
 
 # png files
 *.png
