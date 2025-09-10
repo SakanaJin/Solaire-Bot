@@ -298,7 +298,7 @@ async def gaol_refresh():
             boxes[userid][mon]['currhp'] = boxes[userid][mon]['maxhp']
             boxes[userid][mon]['statuses'] = []
         gaols[userid] = []
-    with lock and open('goal.json', 'w') as f:
+    with lock and open('gaol.json', 'w') as f:
         json.dump(gaols, f, indent=2)
     with lock and open('user-mons.json', 'w') as f:
         json.dump(boxes, f, indent=2)
