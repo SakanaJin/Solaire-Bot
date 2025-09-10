@@ -239,7 +239,7 @@ async def stock_check():
                 percent_change = random.uniform(-0.02, 0.20)
         stocks[stock]['price'] += stocks[stock]['price'] * percent_change
         stocks[stock]['price'] = round(stocks[stock]['price'], 2)
-        price = stock[stock]['price']
+        price = stocks[stock]['price']
         stocksdata[stock].append(price)
         sign = ""
         if percent_change > 0:
