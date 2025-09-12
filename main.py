@@ -239,7 +239,7 @@ async def stock_check():
                 percent_change = random.uniform(-0.02, 0.20)
         stocks[stock]['price'] += stocks[stock]['price'] * percent_change
         stocks[stock]['price'] = round(stocks[stock]['price'], 2)
-        price = stock[stock]['price']
+        price = stocks[stock]['price']
         stocksdata[stock].append(price)
         sign = ""
         if percent_change > 0:
@@ -298,7 +298,7 @@ async def gaol_refresh():
             boxes[userid][mon]['currhp'] = boxes[userid][mon]['maxhp']
             boxes[userid][mon]['statuses'] = []
         gaols[userid] = []
-    with lock and open('goal.json', 'w') as f:
+    with lock and open('gaol.json', 'w') as f:
         json.dump(gaols, f, indent=2)
     with lock and open('user-mons.json', 'w') as f:
         json.dump(boxes, f, indent=2)
