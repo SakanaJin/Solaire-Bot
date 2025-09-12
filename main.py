@@ -679,6 +679,10 @@ async def stockgraph(interaction, stockname: str):
     """Shows graph for stock"""
     with lock and open('stocksdata.json') as f:
         stocksdata = json.load(f)
+    if len(stocksdata[stockname]) != len(stocksdata['dates']):
+        missingnum = len(stocksdata['dates']) - len(stocksdata[stockname])
+        for _ in range(missingnum + 1):
+            stocksdata[stockname].insert(0, 0)
     plt.plot(stocksdata['dates'], stocksdata[stockname], 'o-')
     plt.title(stockname)
     plt.xlabel("Date")
@@ -990,6 +994,24 @@ async def mondesc(interaction, mon: str):
         return
     embed = mon_to_embed(mon, user_mons[mon])
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(mon=user_mon_autocompletion)
+async def releasemon(interaction, mon: str):
+    """Releases a Mon"""
+    userid = str(interaction.user.id)
+    with lock and open('user-mons.json') as f:
+        users_mons = json.load(f)
+    user_mons = users_mons[userid]
+    if mon not in user_mons:
+        await interaction.response.send_message("Gricklemon not in your possesion", ephemeral=True)
+        return
+    if user_mons[mon]['away'] or user_mons[mon]['gaol']:
+        await interaction.response.send_message("Gricklemon is busy rn twin", ephemeral=True)
+    del users_mons[userid][mon]
+    with lock and open('user-mons.json', 'w') as f:
+        json.dump(users_mons, f, indent=2)
+    await interaction.response.send_message("Gricklemon turned to glue :thumbsup:", ephemeral=True)
 
 def mon_to_usermon(skelemon: dict, lvl: int) -> dict:
     skelecopy = skelemon.copy()
@@ -1939,7 +1961,7 @@ async def monuments(interaction):
     with lock and open('user-monuments.json') as f:
         user_monuments = json.load(f)
     if len(user_monuments[userid]) == 0:
-        await interaction.response.send_message("You dont have any Monuments yet. Bet your maidenless too.", ephemeral=True)
+        await interaction.response.send_message("You dont have any Monuments yet. Bet you're maidenless too.", ephemeral=True)
         return
     embeds = []
     for monumentname in user_monuments[userid]:
