@@ -218,8 +218,8 @@ async def stock_check():
         stocks = json.load(f)
     with open('stocksdata.json') as f:
         stocksdata = json.load(f)
-    stocksdata['dates'].append(datetime.date.today().strftime("%Y-%m-%d"))
-    if len(stocksdata['dates']) > 101:
+    stocksdata['dates'].append(datetime.date.today().strftime("%m-%d"))
+    if len(stocksdata['dates']) > 51:
         for key in stocksdata:
             stocksdata[key].pop(0)
     if datetime.date.today().weekday() in (0, 4): # monday and thursday

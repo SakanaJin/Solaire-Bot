@@ -62,7 +62,10 @@
           "fth": "S",
           "arc": "S"
         },
-        "statuses": ["Poison", "Paralysis"],
+        "statuses": [
+          "Poison",
+          "Paralysis"
+        ],
         "equiped": true
       }
     }
@@ -130,6 +133,41 @@
           "int": "S",
           "fth": "S",
           "arc": "S"
+        },
+        "statuses": [],
+        "equiped": true
+      }
+    }
+  },
+  "Some Guy": {
+    "banner": "Normal",
+    "rarity": "Rare",
+    "type": "Basic",
+    "basehp": 30,
+    "description": "Just some guy. Just got off work at the excel mines.\n\n",
+    "statscales": {
+      "vit": "floor(-0.0 * lvl**2 + 1.0 * lvl + 0.0)",
+      "str": "floor(-0.0 * lvl**2 + 1.0 * lvl + 0.0)",
+      "dex": "floor(-0.0 * lvl**2 + 1.0 * lvl + 0.0)",
+      "int": "floor(-0.00067 * lvl**2 + 1.08014 * lvl + 2.6)",
+      "fth": "floor(-0.00067 * lvl**2 + 1.08014 * lvl + 2.6)",
+      "adp": "floor(-0.0 * lvl**2 + 1.0 * lvl + 0.0)",
+      "arc": "floor(-0.0 * lvl**2 + 1.0 * lvl + 0.0)",
+      "res": "floor(-0.0 * lvl**2 + 1.0 * lvl + 0.0)",
+      "def": "floor(-0.0 * lvl**2 + 1.0 * lvl + 0.0)"
+    },
+    "skills": {
+      "Rusty Spoon": {
+        "banner": "Normal",
+        "rarity": "Common",
+        "basedmg": 10,
+        "description": "Attack with a rusty spoon (everyone has their tetnus shots)\n",
+        "scaling": {
+          "str": "E",
+          "dex": "E",
+          "int": "-",
+          "fth": "-",
+          "arc": "-"
         },
         "statuses": [],
         "equiped": true

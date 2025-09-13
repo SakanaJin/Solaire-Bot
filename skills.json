@@ -85,5 +85,19 @@
       "Poison",
       "Paralysis"
     ]
+  },
+  "Rusty Spoon": {
+    "banner": "Normal",
+    "rarity": "Common",
+    "basedmg": 10,
+    "description": "Attack with a rusty spoon (everyone has their tetnus shots)\n",
+    "scaling": {
+      "str": "E",
+      "dex": "E",
+      "int": "-",
+      "fth": "-",
+      "arc": "-"
+    },
+    "statuses": []
   }
 }
