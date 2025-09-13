@@ -156,8 +156,6 @@ def main():
         for stat in stat_list:
             coeff_dict[stat] = np.polyfit(np.array(monlvlscale_list), np.array(sorted([int(statlvl.get()) for lvl, statlvl in monstats_entries_dict[stat].items()])), 2).tolist()
         mons[new_monname] = {'banner': monbanner_select.get(), 'rarity': monrarity_select.get(), 'type': montype_select.get(), 'basehp': new_monhp, 'description': new_description, 'statscales': {stat: f"floor({round(coeff_dict[stat][0], 5)} * lvl**2 + {round(coeff_dict[stat][1], 5)} * lvl + {round(coeff_dict[stat][2], 2)})" for stat in stat_list}, 'skills': {skill: skills[skill] for skill in monskills_list}}
-        for skill in mons[new_monname]['skills']:
-            mons[new_monname]['skills'][skill]['equiped'] = True
         if new_monname != mon:
             del mons[mon]
             monlist.remove(mon)
@@ -181,8 +179,6 @@ def main():
         for stat in stat_list:
             coeff_dict[stat] = np.polyfit(np.array(monlvlscale_list), np.array(sorted([int(statlvl.get()) for lvl, statlvl in monstats_entries_dict[stat].items()])), 2).tolist()
         mons[monname] = {'banner': monbanner_select.get(), 'rarity': monrarity_select.get(), 'type': montype_select.get(), 'basehp': monhp, 'description': description, 'statscales': {stat: f"floor({round(coeff_dict[stat][0], 5)} * lvl**2 + {round(coeff_dict[stat][1], 5)} * lvl + {round(coeff_dict[stat][2], 2)})" for stat in stat_list}, 'skills': {skill: skills[skill] for skill in monskills_list}}
-        for skill in mons[monname]['skills']:
-            mons[monname]['skills'][skill]['equiped'] = True
         with lock and open('gricklemon.json', 'w') as f:
             json.dump(mons, f, indent=2)
         monlist.insert(0, monname)
@@ -205,6 +201,11 @@ def main():
             bosslist.remove(monname)
             with lock and open('boss-mons.json', 'w') as f:
                 json.dump(bosses, f, indent=2)
+
+    def monstat_fill_callback():
+        for stat in monstats_entries_dict:
+            for lvl in monstats_entries_dict[stat]:
+                monstats_entries_dict[stat][lvl].configure(textvariable=ctk.StringVar(master=gtab_scroll, value="1"))
     
     selected_mon = ctk.StringVar(master=gtab_scroll, value=monlist[0])
     mon_select = ctk.CTkOptionMenu(master=gtab_scroll, values=monlist, variable=selected_mon, command=mon_select_callback)
@@ -318,6 +319,9 @@ def main():
             col += 1
 
         row += 1
+
+    monstat_fill_button = ctk.CTkButton(master=gtab_scroll, text='Fill all with 1', command=monstat_fill_callback)
+    monstat_fill_button.grid(row=row+1, column=0, sticky='w', pady=(10,0))
 
     #skill editor---------------------------------------------------------------------------------------
 

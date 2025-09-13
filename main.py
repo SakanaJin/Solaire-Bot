@@ -877,7 +877,6 @@ def skill_to_embed(skillname: str, skill: dict) -> discord.Embed:
         status_string = "".join(f"{status}" for status in skill['statuses'])
     embed = discord.Embed(title=skillname, description=skill['description'], color=rarity_colors[skill['rarity']])
     embed.set_author(name=f"{skill['basedmg']} damage")
-    embed.set_footer(text=f"Equiped: {skill['equiped']}")
     embed.add_field(name="Scaling:", value=scaling_string, inline=False)
     embed.add_field(name="Status Effects:", value=status_string, inline=False)
     return embed
@@ -1143,19 +1142,19 @@ async def mon_not_away_autocomplete(interaction, current: str) -> typing.List[ap
             choices.append(app_commands.Choice(name=mon, value=mon))
     return choices
 
-async def skill_not_equiped_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
+async def skills_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
     with lock and open('user-skills.json') as f:
         skillboxes = json.load(f)
     skillbox = skillboxes[str(interaction.user.id)]
     choices = []
     for skill in skillbox:
-        if current.lower() in skill.lower() and not skillbox[skill]['equiped']:
+        if current.lower() in skill.lower():
             choices.append(app_commands.Choice(name=skill, value=skill))
     return choices
 
 @bot.tree.command(guild=guild)
 @app_commands.autocomplete(mon=mon_not_away_autocomplete)
-@app_commands.autocomplete(skill=skill_not_equiped_autocomplete)
+@app_commands.autocomplete(skill=skills_autocomplete)
 async def equipskill(interaction, mon: str, skill: str):
     """Equips a skill to a Grickle"""
     userid = str(interaction.user.id)
@@ -1168,14 +1167,13 @@ async def equipskill(interaction, mon: str, skill: str):
     if mon not in box or box[mon]['away'] or box[mon]['gaol']:
         await interaction.response.send_message(f"Invalid Gricklemon", ephemeral=True)
         return
-    if skill not in skillbox or skillbox[skill]['equiped']:
+    if skill not in skillbox:
         await interaction.response.send_message(f"Invalid Skill", ephemeral=True)
         return
     if len(box[mon]['skills']) == 4:
         await interaction.response.send_message(f"Can only equip 4 skills", ephemeral=True)
         return
     box[mon]['skills'][skill] = skillbox[skill]
-    skillbox[skill]['equiped'] = True
     boxes[userid] = box
     skillboxes[userid] = skillbox
     with lock and open('user-mons.json', 'w') as f:
@@ -1184,19 +1182,9 @@ async def equipskill(interaction, mon: str, skill: str):
         json.dump(skillboxes, f, indent=2)
     await interaction.response.send_message(f"Equiped {skill} to {mon}", ephemeral=True)
 
-async def equiped_skill_autocomplete(interaction, current: str) -> typing.List[app_commands.Choice[str]]:
-    with lock and open('user-skills.json') as f:
-        skillboxes = json.load(f)
-    skillbox = skillboxes[str(interaction.user.id)]
-    choices = []
-    for skill in skillbox:
-        if current.lower() in skill.lower() and skillbox[skill]['equiped']:
-            choices.append(app_commands.Choice(name=skill, value=skill))
-    return choices
-
 @bot.tree.command(guild=guild)
 @app_commands.autocomplete(mon=mon_not_away_autocomplete)
-@app_commands.autocomplete(skill=equiped_skill_autocomplete)
+@app_commands.autocomplete(skill=skills_autocomplete)
 async def unequipskill(interaction, mon: str, skill: str):
     """Unequips a skill from a Grickly boi"""
     userid = str(interaction.user.id)
@@ -1215,7 +1203,6 @@ async def unequipskill(interaction, mon: str, skill: str):
     if len(box[mon]['skills']) == 1:
         await interaction.response.send_message("Gricklemon can not have no skills", ephemeral=True)
         return
-    skillbox[skill]['equiped'] = False
     del box[mon]['skills'][skill]
     boxes[userid] = box
     skillboxes[userid] = skillbox

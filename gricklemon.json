@@ -28,8 +28,7 @@
           "fth": "D",
           "arc": "E"
         },
-        "statuses": [],
-        "equiped": true
+        "statuses": []
       }
     }
   },
@@ -65,8 +64,7 @@
         "statuses": [
           "Poison",
           "Paralysis"
-        ],
-        "equiped": true
+        ]
       }
     }
   },
@@ -99,8 +97,7 @@
           "fth": "D",
           "arc": "E"
         },
-        "statuses": [],
-        "equiped": true
+        "statuses": []
       }
     }
   },
@@ -134,8 +131,7 @@
           "fth": "S",
           "arc": "S"
         },
-        "statuses": [],
-        "equiped": true
+        "statuses": []
       }
     }
   },
@@ -169,8 +165,125 @@
           "fth": "-",
           "arc": "-"
         },
-        "statuses": [],
-        "equiped": true
+        "statuses": []
+      }
+    }
+  },
+  "Three Gay Rats": {
+    "banner": "Normal",
+    "rarity": "Rare",
+    "type": "Grass",
+    "basehp": 45,
+    "description": "Three Gay Rats.\n\n",
+    "statscales": {
+      "vit": "floor(0.00054 * lvl**2 + 0.95986 * lvl + 3.41)",
+      "str": "floor(0.00036 * lvl**2 + 0.97324 * lvl + 3.27)",
+      "dex": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "int": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "fth": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "adp": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "arc": "floor(0.00107 * lvl**2 + 0.91971 * lvl + 4.82)",
+      "res": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "def": "floor(-0.0 * lvl**2 + 1.0 * lvl + 2.0)"
+    },
+    "skills": {
+      "Gay Rat Bites": {
+        "banner": "Normal",
+        "rarity": "Uncommon",
+        "basedmg": 20,
+        "description": "The Gay Rats nibble nibble\n",
+        "scaling": {
+          "str": "C",
+          "dex": "D",
+          "int": "-",
+          "fth": "-",
+          "arc": "D"
+        },
+        "statuses": [
+          "Poison"
+        ]
+      }
+    }
+  },
+  "Small Enemy Spider": {
+    "banner": "Normal",
+    "rarity": "Rare",
+    "type": "Fire",
+    "basehp": 40,
+    "description": "Small spider that is an enemy to all. Surely he will stay weak and pathetic forever right?\n\n",
+    "statscales": {
+      "vit": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "str": "floor(-0.0 * lvl**2 + 1.0 * lvl + 2.0)",
+      "dex": "floor(0.00071 * lvl**2 + 0.94648 * lvl + 3.54)",
+      "int": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "fth": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "adp": "floor(0.00107 * lvl**2 + 0.91971 * lvl + 4.82)",
+      "arc": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "res": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "def": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)"
+    },
+    "skills": {
+      "Weak Bite": {
+        "banner": "Normal",
+        "rarity": "Common",
+        "basedmg": 15,
+        "description": "Bite your enemies. Seems you're even unskilled in biting. Pathetic.\n",
+        "scaling": {
+          "str": "D",
+          "dex": "E",
+          "int": "-",
+          "fth": "-",
+          "arc": "-"
+        },
+        "statuses": []
+      }
+    }
+  },
+  "Soggy Anteater": {
+    "banner": "Normal",
+    "rarity": "Legendary",
+    "type": "Water",
+    "basehp": 70,
+    "description": "An anteater wet all over with some mysterious stinky liquid.\n\n",
+    "statscales": {
+      "vit": "floor(-2e-05 * lvl**2 + 1.1022 * lvl + 4.94)",
+      "str": "floor(-2e-05 * lvl**2 + 1.1022 * lvl + 1.94)",
+      "dex": "floor(-5e-05 * lvl**2 + 1.30659 * lvl + 2.82)",
+      "int": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "fth": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "adp": "floor(-0.0 * lvl**2 + 1.0 * lvl + 2.0)",
+      "arc": "floor(-0.0 * lvl**2 + 1.0 * lvl + 1.0)",
+      "res": "floor(-3e-05 * lvl**2 + 1.20439 * lvl + 2.88)",
+      "def": "floor(0.0 * lvl**2 + 1.0 * lvl + 3.0)"
+    },
+    "skills": {
+      "Lick": {
+        "banner": "Normal",
+        "rarity": "Uncommon",
+        "basedmg": 35,
+        "description": "Like a hungry giraffe noticing the feed in your hand.\n",
+        "scaling": {
+          "str": "D",
+          "dex": "C",
+          "int": "-",
+          "fth": "E",
+          "arc": "-"
+        },
+        "statuses": []
+      },
+      "Weak Bite": {
+        "banner": "Normal",
+        "rarity": "Common",
+        "basedmg": 15,
+        "description": "Bite your enemies. Seems you're even unskilled in biting. Pathetic.\n",
+        "scaling": {
+          "str": "D",
+          "dex": "E",
+          "int": "-",
+          "fth": "-",
+          "arc": "-"
+        },
+        "statuses": []
       }
     }
   }
