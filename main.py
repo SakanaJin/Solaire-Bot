@@ -384,14 +384,14 @@ async def on_message(msg):
     message = msg.content.lower()
     message = message.replace(" ", "")
     if "fuck" in message:
-        await incfuck(msg.author)
+        await incfuck(msg.author, message.count("fuck"))
 
     await bot.process_commands(msg)
 
-async def incfuck(author):
+async def incfuck(author, amount):
     with lock and open('data.json') as f:
         data = json.load(f)
-    data[str(author.id)]['fucks'] += 1
+    data[str(author.id)]['fucks'] += amount
     with lock and open('data.json', 'w') as f:
         json.dump(data, f, indent=2)
 
@@ -1167,7 +1167,7 @@ async def equipskill(interaction, mon: str, skill: str):
     if mon not in box or box[mon]['away'] or box[mon]['gaol']:
         await interaction.response.send_message(f"Invalid Gricklemon", ephemeral=True)
         return
-    if skill not in skillbox:
+    if skill not in skillbox or skill in box[mon]['skills']:
         await interaction.response.send_message(f"Invalid Skill", ephemeral=True)
         return
     if len(box[mon]['skills']) == 4:
