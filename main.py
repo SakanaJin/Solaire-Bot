@@ -942,7 +942,7 @@ async def skills(interaction):
         users_skills = json.load(f)
     user_skills = users_skills[str(interaction.user.id)]
     for skill in user_skills:
-        message = message + f"{skill}: {user_skills[skill]['rarity']}"
+        message = message + f"{skill}: {user_skills[skill]['rarity']}\n"
     if message == "":
         await interaction.response.send_message("No skills in your possession", ephemeral=True)
         return
@@ -1043,7 +1043,7 @@ async def pull(interaction):
         inventories = json.load(f)
     user_inventory = inventories[userid]
     if "Radiant Shard" not in user_inventory or user_inventory['Radiant Shard'] < 5:
-        await interaction.response.send_message("Not enought Radiant Shards", ephemeral=True)
+        await interaction.response.send_message("Not enough Radiant Shards", ephemeral=True)
         return
     if user_inventory['Radiant Shard'] == 5:
         del user_inventory['Radiant Shard']
