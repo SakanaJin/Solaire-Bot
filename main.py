@@ -1042,7 +1042,7 @@ async def pull(interaction):
     with lock and open('user-inventories.json') as f:
         inventories = json.load(f)
     user_inventory = inventories[userid]
-    if "Radiant Shard" not in user_inventory or user_inventory['Radiant Shard'] <= 5:
+    if "Radiant Shard" not in user_inventory or user_inventory['Radiant Shard'] < 5:
         await interaction.response.send_message("Not enought Radiant Shards", ephemeral=True)
         return
     if user_inventory['Radiant Shard'] == 5:
