@@ -61,10 +61,7 @@
           "fth": "S",
           "arc": "S"
         },
-        "statuses": [
-          "Poison",
-          "Paralysis"
-        ]
+        "statuses": ["Poison", "Paralysis"]
       }
     }
   },
@@ -190,7 +187,7 @@
       "Gay Rat Bites": {
         "banner": "Normal",
         "rarity": "Uncommon",
-        "basedmg": 20,
+        "basedmg": 30,
         "description": "The Gay Rats nibble nibble\n",
         "scaling": {
           "str": "C",
@@ -199,9 +196,7 @@
           "fth": "-",
           "arc": "D"
         },
-        "statuses": [
-          "Poison"
-        ]
+        "statuses": ["Poison"]
       }
     }
   },
@@ -226,7 +221,7 @@
       "Weak Bite": {
         "banner": "Normal",
         "rarity": "Common",
-        "basedmg": 15,
+        "basedmg": 25,
         "description": "Bite your enemies. Seems you're even unskilled in biting. Pathetic.\n",
         "scaling": {
           "str": "D",
@@ -260,7 +255,7 @@
       "Lick": {
         "banner": "Normal",
         "rarity": "Uncommon",
-        "basedmg": 35,
+        "basedmg": 50,
         "description": "Like a hungry giraffe noticing the feed in your hand.\n",
         "scaling": {
           "str": "D",
@@ -274,7 +269,7 @@
       "Weak Bite": {
         "banner": "Normal",
         "rarity": "Common",
-        "basedmg": 15,
+        "basedmg": 25,
         "description": "Bite your enemies. Seems you're even unskilled in biting. Pathetic.\n",
         "scaling": {
           "str": "D",

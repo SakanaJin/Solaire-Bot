@@ -88,7 +88,7 @@ def lvl_up_stats(mon: dict, monskeleton: dict) -> None:
     mon['stats'] = {stat: func(mon['lvl']) for stat, func in growth_funcs.items()}
 
 def hit_chance(attacker: dict, defender: dict) -> float:
-    base_hit = 0.50
+    base_hit = 0.80
     max_hit = 0.98
     min_hit = 0.50
     hit_chance = base_hit + ((attacker['stats']['adp'] - defender['stats']['adp']) * 0.01)
@@ -103,7 +103,7 @@ def status_proc_chance(attacker: dict, defender: dict) -> float:
 
 def status_unproc_chance(attacker: dict, defender: dict) -> float:
     base_chance = 0.10
-    max_chance = 0.50
+    max_chance = 0.25
     min_chance = 0.05
     unhit_chance = base_chance + ((defender['stats']['res'] - attacker['stats']['arc']) * 0.02)
     return max(min(unhit_chance, max_chance), min_chance)
