@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from contextlib import contextmanager
 
 engine = create_engine("sqlite:///Solaire.db", echo=True, future=True)
+# engine = create_engine("sqlite:///Solaire.db", future=True)
 Base = declarative_base()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
