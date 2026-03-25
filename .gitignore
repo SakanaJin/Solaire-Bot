@@ -108,3 +108,4 @@ guitest.py
 
 #backup folder
 backup/
+*.db

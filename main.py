@@ -53,7 +53,6 @@ async def tasks(interaction: discord.Interaction):
     )
     embed = discord.Embed(
         title="Task Dashboard",
-        description="Status of tasks.",
         color=discord.Color.blurple()
     )
     for name, task in sorted_tasks:
