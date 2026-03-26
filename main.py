@@ -41,7 +41,14 @@ async def on_ready():
 
 @TaskManager.register("test", time=time(hour=15, minute=0))
 async def test():
-    print("gay")
+    print("yamomma")
+
+async def taskname_autocomplete(interaction, current):
+    choices = []
+    for task in TaskManager.tasks.keys():
+        if current.lower() in task.lower():
+            choices.append(app_commands.Choice(name=task, value=task))
+    return choices
 
 @bot.tree.command(guild=guild)
 async def tasks(interaction: discord.Interaction):
@@ -72,6 +79,39 @@ async def tasks(interaction: discord.Interaction):
             inline=False
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(taskname=taskname_autocomplete)
+async def runtask(interaction, taskname: str):
+    #add admin check later
+    if taskname not in TaskManager.tasks.keys():
+        await interaction.response.send_message("Task not found.", ephemeral=True)
+        return
+    if not TaskManager.tasks[taskname]["enabled"]:
+        await interaction.response.send_message(f"Task: {taskname} is disabled.", ephemeral=True)
+        return
+    await TaskManager.run(taskname)
+    await interaction.response.send_message(f"Ran task {taskname}.", ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(taskname=taskname_autocomplete)
+async def disabletask(interaction, taskname: str):
+    #add admin check later
+    if taskname not in TaskManager.tasks.keys():
+        await interaction.response.send_message("Task not found.", ephemeral=True)
+        return
+    TaskManager.disable(taskname)
+    await interaction.response.send_message(f"Disabled task {taskname}.", ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@app_commands.autocomplete(taskname=taskname_autocomplete)
+async def enabletask(interaction, taskname: str):
+    #add admin check later
+    if taskname not in TaskManager.tasks.keys():
+        await interaction.response.send_message("Task not found.", ephemeral=True)
+        return
+    TaskManager.enable(taskname)
+    await interaction.response.send_message(f"Enabled task {taskname}.", ephemeral=True)
 
 #basic commands-----------------------------------------------------------------------------------------------------
 
