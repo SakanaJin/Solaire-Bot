@@ -2,14 +2,16 @@ import asyncio
 from discord.ext import tasks
 from sqlalchemy import select
 
-from database import get_db
+from database import get_database, get_db
 from Entities.Tasks import Task
+from Utils.DependInject import inject, Depends
 
 class TaskManagerClass:
     def __init__(self):
         self.tasks = {}
 
-    async def syncdb(self, db):
+    @inject
+    async def syncdb(self, db = Depends(get_db)):
         dbtasks = db.scalars(
             select(Task)
         ).all()
@@ -69,32 +71,32 @@ class TaskManagerClass:
             raise NameError(f"{taskname} not found")
         task["task"].stop()
 
-    def enable(self, taskname: str):
+    @inject
+    async def enable(self, taskname: str, db = Depends(get_db)):
         task = self.tasks.get(taskname)
         if not taskname:
             raise NameError(f"{taskname} not found")
         task["enabled"] = True
-        with get_db() as db:
-            dbtask = db.execute(
-                select(Task)
-                .where(Task.name == taskname)
-            ).scalar_one_or_none()
-            dbtask.enabled = True
-            db.commit()
+        dbtask = db.execute(
+            select(Task)
+            .where(Task.name == taskname)
+        ).scalar_one_or_none()
+        dbtask.enabled = True
+        db.commit()
         self.start(taskname)
 
-    def disable(self, taskname: str):
+    @inject
+    async def disable(self, taskname: str, db = Depends(get_db)):
         task = self.tasks.get(taskname)
         if not taskname:
             raise NameError(f"{taskname} not found")
         task["enabled"] = False
-        with get_db() as db:
-            dbtask = db.execute(
-                select(Task)
-                .where(Task.name == taskname)
-            ).scalar_one_or_none()
-            dbtask.enabled = False
-            db.commit()
+        dbtask = db.execute(
+            select(Task)
+            .where(Task.name == taskname)
+        ).scalar_one_or_none()
+        dbtask.enabled = False
+        db.commit()
         self.stop(taskname)
 
 TaskManager = TaskManagerClass()
