@@ -2,12 +2,14 @@ import discord
 import os 
 import random
 import requests
+import json
+from pathlib import Path
 from bs4 import BeautifulSoup
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
 from datetime import time, datetime
-from sqlalchemy import select
+from sqlalchemy import select, exists, func
 
 from database import get_db, Base, engine
 from Utils.TaskManager import TaskManager
@@ -19,6 +21,7 @@ from Utils.Roles import Roles
 #for database creation and other usage
 from Entities.Users import User
 from Entities.Tasks import Task
+from Entities.Quotes import Quote
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -52,7 +55,7 @@ async def get_current_user(interaction: discord.Interaction, db = Depends(get_db
         user = User(
             id=discord_id,
             username=interaction.user.display_name,
-            role=Roles.USER
+            role=Roles.USER if int(discord_id) != ADMIN else Roles.ADMIN
         )
         db.add(user)
         db.commit()
@@ -66,16 +69,80 @@ async def require_admin(interaction: discord.Interaction, user = Depends(get_cur
         raise AdminOnly()
     else:
         return user
+    
+@inject
+async def seed_quotes(data, db = Depends(get_db)):
+    notempty = db.scalar(
+        select(exists().where(Quote.id != None))
+    )
+    if notempty:
+        return
+    for seedquote in data:
+        newquote = Quote(
+            content=seedquote["content"],
+            author_id=seedquote["author_id"]
+        )
+        db.add(newquote)
+    db.commit()
+
+async def seed_data():
+    seeded_data_dir = Path("./SeededData")
+    for filepath in seeded_data_dir.glob("*.json"):
+        with open(filepath) as f:
+            data = json.load(f)
+        match filepath.name.split(".")[0]:
+            case Quote.__tablename__:
+                await seed_quotes(data)
+            case _:
+                continue
 
 #events-------------------------------------------------------------------------------------------------------------
 
 @bot.event
-async def on_ready():
+@inject
+async def on_ready(db = Depends(get_db)):
     await TaskManager.syncdb()
     TaskManager.startall()
     await TaskManager.wait_until_ready()
+    global general
+    general = await bot.fetch_channel(CID)
+    for user in bot.guilds[0].members: #this assumes the bot is in only one guild
+        indb = db.scalar(
+            select(exists().where(User.id == user.id))
+        )
+        if indb:
+            continue
+        newuser = User(
+            id=user.id,
+            username=user.display_name,
+            role=Roles.USER if int(user.id) != ADMIN else Roles.ADMIN
+        )
+        db.add(newuser)
+    db.commit()
+    await seed_data()
     await TaskManager.run("test")
-    #check if all users are in db
+
+@bot.event
+@inject
+async def on_member_update(before, after, db = Depends(get_db)):
+    if before.nick != after.nick:
+        user = db.execute(
+            select(User).where(User.id == after.id)
+        ).scalar_one_or_none()
+        user.username = after.nick
+        db.commit()
+
+@bot.event
+@inject
+async def on_member_join(member, db = Depends(get_db)):
+    newuser = User(
+        id=member.id,
+        username=member.nick,
+        role=Roles.User if int(member.id) != ADMIN else Roles.ADMIN
+    )
+    db.add(newuser)
+    db.commit()
+    await general.send(f"Welcome to the server {member.nick}! Enjoying the sunlight?")
 
 #tasks--------------------------------------------------------------------------------------------------------------
 
@@ -122,8 +189,8 @@ async def tasks(interaction: discord.Interaction):
 
 @bot.tree.command(guild=guild)
 @app_commands.autocomplete(taskname=taskname_autocomplete)
-async def runtask(interaction, taskname: str):
-    #add admin check later
+@inject
+async def runtask(interaction, taskname: str, admin = Depends(require_admin)):
     if taskname not in TaskManager.tasks.keys():
         await interaction.response.send_message("Task not found.", ephemeral=True)
         return
@@ -135,8 +202,8 @@ async def runtask(interaction, taskname: str):
 
 @bot.tree.command(guild=guild)
 @app_commands.autocomplete(taskname=taskname_autocomplete)
-async def disabletask(interaction, taskname: str):
-    #add admin check later
+@inject
+async def disabletask(interaction, taskname: str, admin = Depends(require_admin)):
     if taskname not in TaskManager.tasks.keys():
         await interaction.response.send_message("Task not found.", ephemeral=True)
         return
@@ -145,8 +212,8 @@ async def disabletask(interaction, taskname: str):
 
 @bot.tree.command(guild=guild)
 @app_commands.autocomplete(taskname=taskname_autocomplete)
-async def enabletask(interaction, taskname: str):
-    #add admin check later
+@inject
+async def enabletask(interaction, taskname: str, admin = Depends(require_admin)):
     if taskname not in TaskManager.tasks.keys():
         await interaction.response.send_message("Task not found.", ephemeral=True)
         return
@@ -231,7 +298,6 @@ async def balance(interaction, user = Depends(get_current_user)):
 @inject
 async def whosagoodboy(interaction, goodboy: discord.User, money: int, db = Depends(get_db), admin = Depends(require_admin)):
     """You are yes you are :3"""
-    #add admin check
     try:
         user = db.execute(
             select(User)
@@ -242,6 +308,29 @@ async def whosagoodboy(interaction, goodboy: discord.User, money: int, db = Depe
         await interaction.response.send_message(f"Ahh, {goodboy}… truly, you are a good boy indeed! Rare is the soul who shines with such brilliance. Take this reward of {money:,} Sunlight — a symbol of my esteem. May it guide you ever closer to your own sun!")
     except:
         await interaction.response.send_message("Would result in negative sunlight cancelling", ephemeral=True)
+
+@bot.tree.command(guild=guild)
+@inject
+async def quote(interaction, author: discord.User = None, private: bool = True, db = Depends(get_db)):
+    """Shows a random quote"""
+    if author:
+        stmt = select(Quote).where(Quote.author_id == author.id).order_by(func.random()).limit(1)
+    else:
+        stmt = select(Quote).order_by(func.random()).limit(1)
+    quote = db.scalar(stmt)
+    await interaction.response.send_message(f"{quote.content}\n\t- {quote.author.username}", ephemeral=private)
+
+@bot.tree.context_menu(name="Create Quote", guild=guild)
+@inject
+async def create_quote(interaction: discord.Interaction, message: discord.Message, db = Depends(get_db)):
+    """Creates a quote from a message"""
+    newquote = Quote(
+        content=message.content,
+        author_id=message.author.id
+    )
+    db.add(newquote)
+    db.commit()
+    await interaction.response.send_message(f"Ahh, dear adventurer! '{newquote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
 
 #Running------------------------------------------------------------------------------------------------------------
 
