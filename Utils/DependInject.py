@@ -23,7 +23,7 @@ def inject(func):
                 default = param.default
                 if isinstance(default, Depends):
                     dep_func = default.dependency
-                    value, finalizer = await resolve_dependency(dep_func)
+                    value, finalizer = await resolve_dependency(dep_func, bound.arguments)
                     bound.arguments[name] = value
                     if finalizer:
                         cleanup.append(finalizer)
@@ -34,11 +34,19 @@ def inject(func):
     wrapper.__signature__ = new_sig
     return wrapper
 
-async def resolve_dependency(func):
+async def resolve_dependency(func, parent_args=None):
+    parent_args = parent_args or {}
+    bound_instance = getattr(func, "__self__", None)
+    if bound_instance is not None:
+        parent_args = {k: v for k, v in parent_args.items() if k != "self"}
+    sig = inspect.signature(func)
+    func_param_names = set(sig.parameters.keys())
+    filtered_args = {k: v for k, v in parent_args.items() if k in func_param_names}
+    bound = sig.bind_partial(**filtered_args)
     if inspect.iscoroutinefunction(func):
-        result = await func()
+        result = await func(**bound.arguments)
         return result, None
-    result = func()
+    result = func(**bound.arguments)
     if inspect.isgenerator(result):
         gen = result
         value = next(gen)

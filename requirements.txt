@@ -4,6 +4,10 @@ aiosignal==1.4.0
 annotated-types==0.7.0
 attrs==26.1.0
 audioop-lts==0.2.2
+beautifulsoup4==4.14.3
+bs4==0.0.2
+certifi==2026.2.25
+charset-normalizer==3.4.6
 discord==2.3.2
 discord.py==2.7.1
 dotenv==0.9.9
@@ -14,7 +18,10 @@ multidict==6.7.1
 propcache==0.4.1
 pydantic_core==2.41.5
 python-dotenv==1.2.2
+requests==2.33.0
+soupsieve==2.8.3
 SQLAlchemy==2.0.48
 typing-inspection==0.4.2
 typing_extensions==4.15.0
+urllib3==2.6.3
 yarl==1.23.0
