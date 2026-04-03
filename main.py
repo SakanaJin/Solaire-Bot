@@ -150,6 +150,8 @@ async def on_member_join(member, db = Depends(get_db)):
 async def test():
     print("yamomma")
 
+task_group = app_commands.Group(name="task", description="commands for tasks (admin only)")
+
 async def taskname_autocomplete(interaction, current):
     choices = []
     for task in TaskManager.tasks.keys():
@@ -187,10 +189,11 @@ async def tasks(interaction: discord.Interaction):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-@bot.tree.command(guild=guild)
+@task_group.command()
 @app_commands.autocomplete(taskname=taskname_autocomplete)
 @inject
-async def runtask(interaction, taskname: str, admin = Depends(require_admin)):
+async def run(interaction, taskname: str, admin = Depends(require_admin)):
+    """Runs a task immediately."""
     if taskname not in TaskManager.tasks.keys():
         await interaction.response.send_message("Task not found.", ephemeral=True)
         return
@@ -200,25 +203,29 @@ async def runtask(interaction, taskname: str, admin = Depends(require_admin)):
     await TaskManager.run(taskname)
     await interaction.response.send_message(f"Ran task {taskname}.", ephemeral=True)
 
-@bot.tree.command(guild=guild)
+@task_group.command()
 @app_commands.autocomplete(taskname=taskname_autocomplete)
 @inject
-async def disabletask(interaction, taskname: str, admin = Depends(require_admin)):
+async def disable(interaction, taskname: str, admin = Depends(require_admin)):
+    """Disables a task."""
     if taskname not in TaskManager.tasks.keys():
         await interaction.response.send_message("Task not found.", ephemeral=True)
         return
     await TaskManager.disable(taskname)
     await interaction.response.send_message(f"Disabled task {taskname}.", ephemeral=True)
 
-@bot.tree.command(guild=guild)
+@task_group.command()
 @app_commands.autocomplete(taskname=taskname_autocomplete)
 @inject
-async def enabletask(interaction, taskname: str, admin = Depends(require_admin)):
+async def enable(interaction, taskname: str, admin = Depends(require_admin)):
+    """Enables a task."""
     if taskname not in TaskManager.tasks.keys():
         await interaction.response.send_message("Task not found.", ephemeral=True)
         return
     await TaskManager.enable(taskname)
     await interaction.response.send_message(f"Enabled task {taskname}.", ephemeral=True)
+
+bot.tree.add_command(task_group, guild=guild)
 
 #basic commands-----------------------------------------------------------------------------------------------------
 
