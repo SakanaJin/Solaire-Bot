@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 def format_time(dt):
     if dt is None:
@@ -46,3 +46,6 @@ def discord_time(dt):
     
     ts = int(dt.timestamp())
     return f"<t:{ts}:R> (<t:{ts}:F>)"
+
+def round_nearest_hour(time: datetime) -> datetime:
+    return (time.replace(second=0, microsecond=0, minute=0, hour=time.hour) + timedelta(hours=time.minute//30))

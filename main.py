@@ -15,13 +15,60 @@ from database import get_db, Base, engine
 from Utils.TaskManager import TaskManager
 from Utils.Time import discord_time
 from Utils.DependInject import inject, Depends
-from Utils.WaifuNums import WaifuType
+from Utils.Waifu import WaifuType, WAIFUAPIURL
 from Utils.Roles import Roles
 
 #for database creation and other usage
 from Entities.Users import User
 from Entities.Tasks import Task
 from Entities.Quotes import Quote
+from Entities.Monuments import Monument
+from Entities.UsersMonuments import UserMonument
+from Entities.Effects import Effect
+from Entities.EffectsUsers import EffectUser
+from Entities.Items import Item
+from Entities.UsersItems import UserItem
+from Entities.ItemsEffects import ItemEffect
+from Entities.Stocks import Stock
+from Entities.UsersStocks import UserStock
+from Entities.EffectsStocks import EffectStock
+from Entities.Skills import Skill
+from Entities.Scalings import Scaling
+from Entities.SkillsEffects import SkillEffect
+from Entities.Types import Type
+from Entities.TypeEffectiveness import TypeEffectiveness
+from Entities.Mons import Mon
+from Entities.UsersMons import UserMon
+from Entities.Ivs import Ivs
+from Entities.Evs import Evs
+from Entities.EffectsUsersMons import EffectUserMon
+from Entities.MonsSkills import MonSkill
+from Entities.UsersMonsSkills import UserMonSkill
+from Entities.MonsTypes import MonType
+from Entities.ShopItems import ShopItem
+from Entities.Battles import Battle
+from Entities.BattlesParticipants import BattleParticipant
+from Entities.Quests import Quest
+from Entities.QuestsItems import QuestItem
+from Entities.QuestsEffects import QuestEffect
+from Entities.QuestsMons import QuestMon
+from Entities.QuestsMonuments import QuestMonument
+from Entities.UsersQuests import UserQuest
+from Entities.Banners import Banner
+from Entities.BannersMons import BannerMon
+from Entities.BannersItems import BannerItem
+from Entities.BannersQuests import BannerQuest
+from Entities.Clans import Clan
+from Entities.Families import Family
+from Entities.Areas import Area
+from Entities.BusinessTypes import BusinessType
+from Entities.Yakuza import Yakuza
+from Entities.Affinities import Affinity
+from Entities.ClanMembers import ClanMember
+from Entities.Businesses import Business
+from Entities.AreaBusinesses import AreaBusiness
+from Entities.EffectsBusinesses import EffectBusiness
+from Entities.UserBusinesses import UserBusiness
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -29,7 +76,6 @@ CID = os.getenv('CID')
 GID = os.getenv('GID')
 ADMIN = int(os.getenv('ADMIN'))
 MEMEAPIURL = "https://meme-api.com"
-WAIFUAPIURL = "https://api.waifu.pics"
 HEADERS = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'}
 
 intents = discord.Intents.default()
@@ -43,6 +89,9 @@ guild = discord.Object(id=GID)
 #utility------------------------------------------------------------------------------------------------------------
 
 class AdminOnly(Exception):
+    pass
+
+class CommandExit(Exception):
     pass
 
 @inject
