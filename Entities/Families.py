@@ -15,4 +15,7 @@ class Family(Base):
     clanid = Column(Integer, ForeignKey("clans.id"))
     clan = relationship("Clan", back_populates="families")
 
+    areaid = Column(Integer, ForeignKey("areas.id"))
+    area = relationship("Area", back_populates="families")
+
     members = relationship("ClanMember", back_populates="family")

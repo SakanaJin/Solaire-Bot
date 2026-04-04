@@ -12,7 +12,7 @@ class Clan(Base):
     nextlvl = Column(Integer, nullable=False, default=1)
 
     chairmanid = Column(Integer, ForeignKey("users.id"))
-    chairman = relationship("User", back_populates="Clan", uselist=False)
+    chairman = relationship("User", back_populates="clan", uselist=False)
 
     families = relationship("Family", back_populates="clan")
 

@@ -13,3 +13,5 @@ class Area(Base):
     familyprice = Column(Integer, nullable=False, default=1000)
 
     businesses = relationship("Business", back_populates="areas", secondary="areasbusinesses")
+
+    families = relationship("Family", back_populates="area")

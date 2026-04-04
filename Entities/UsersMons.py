@@ -32,6 +32,8 @@ class UserMon(Base):
 
     effect_links = relationship("EffectUserMon", back_populates="mon")
 
+    battle_link = relationship("BattleParticipant", back_populates="mon")
+
     __table_args__ = (
         CheckConstraint("hp > 0", name="check_hp_gtzero"),
         CheckConstraint("nextlvl > 0", name="check_nextlvl_gtzero")

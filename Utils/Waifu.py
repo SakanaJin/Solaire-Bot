@@ -23,12 +23,12 @@ def get_random_waifu_url() -> str:
         list(WaifuType),
         weights=[SFWWEIGHT, NSFWWEIGHT],
         k=1
-    )[0]
+    )[0].value
     category = random.choices(
         list(WaifuCat),
         weights=[WAIFUWEIGHT, NEKOWEIGHT],
         k=1
-    )[0]
+    )[0].value
     response = requests.get(WAIFUAPIURL + f"/{wtype}/{category}")
     imgurl = response.json()['url']
     return imgurl

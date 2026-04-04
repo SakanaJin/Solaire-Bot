@@ -17,4 +17,4 @@ class Business(Base):
 
     areas = relationship("Area", back_populates="businesses", secondary="areasbusinesses")
 
-    userbusiness = relationship("UserBusiness", back_populates="business")
+    userbusinesses = relationship("UserBusiness", back_populates="business")

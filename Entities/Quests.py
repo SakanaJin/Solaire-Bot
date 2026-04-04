@@ -25,7 +25,7 @@ class Quest(Base):
 
     monuments = relationship("Monument", back_populates="quests", secondary="questsmonuments")
 
-    banners = relationship("Banner", back_populates="quest", secondary="bannersquests")
+    banners = relationship("Banner", back_populates="quests", secondary="bannersquests")
 
     user_links = relationship("UserQuest", back_populates="quest")
 

@@ -63,6 +63,7 @@ from Entities.Families import Family
 from Entities.Areas import Area
 from Entities.BusinessTypes import BusinessType
 from Entities.Yakuza import Yakuza
+from Entities.YakuzaEffects import YakuzaEffects
 from Entities.Affinities import Affinity
 from Entities.ClanMembers import ClanMember
 from Entities.Businesses import Business
@@ -330,7 +331,7 @@ async def waifutype_autocomplete(interaction, current):
 async def waifu(interaction, type: str = WaifuType.SFW.value, category: str = "waifu", private: bool = True):
     """Throws a waifu"""
     if type == "n":
-        type = WaifuType.NSFW
+        type = WaifuType.NSFW.value
     response = requests.get(WAIFUAPIURL + f"/{type}/{category}")
     imgurl = response.json()['url']
     await interaction.response.send_message(imgurl, ephemeral=private)

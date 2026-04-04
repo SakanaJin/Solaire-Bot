@@ -14,7 +14,8 @@ class User(Base):
     lvl = Column(Integer, default=1)
     nextlvl = Column(Integer, default=1)
     birthday = Column(String(5), default="01/01")
-    wimgurl = Column(String(512), default=get_random_waifu_url)
+    wimgurl = Column(String(512), default=get_random_waifu_url())
+    msgcount = Column(Integer, default=0)
 
     quotes = relationship("Quote", back_populates="author")
 
@@ -33,7 +34,7 @@ class User(Base):
 
     mons = relationship("UserMon", back_populates="trainer")
 
-    clan = relationship("Clan", back_populates="owner", uselist=False)
+    clan = relationship("Clan", back_populates="chairman", uselist=False)
 
     businesses = relationship("UserBusiness", back_populates="user")
 
