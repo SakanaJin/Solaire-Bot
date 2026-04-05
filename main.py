@@ -15,8 +15,12 @@ from database import get_db, Base, engine
 from Utils.TaskManager import TaskManager
 from Utils.Time import discord_time
 from Utils.DependInject import inject, Depends
-from Utils.Waifu import WaifuType, WAIFUAPIURL
+from Utils.Waifu import WaifuType, WAIFUAPIURL, get_random_waifu_url
 from Utils.Roles import Roles
+from Utils.EventDispatcher import dispatch_event
+from Utils.Events import *
+from Utils.QuestHandlers import *
+from Utils.Conext import Context
 
 #for database creation and other usage
 from Entities.Users import User
@@ -95,7 +99,6 @@ class AdminOnly(Exception):
 class CommandExit(Exception):
     pass
 
-@inject
 async def get_current_user(interaction: discord.Interaction, db = Depends(get_db)):
     discord_id = interaction.user.id
     user = db.execute(
@@ -112,13 +115,11 @@ async def get_current_user(interaction: discord.Interaction, db = Depends(get_db
         db.refresh(user)
     return user
 
-@inject
 async def require_admin(interaction: discord.Interaction, user = Depends(get_current_user)):
     if user.role != Roles.ADMIN:
         await interaction.response.send_message("Admin only", ephemeral=True)
         raise AdminOnly()
-    else:
-        return user
+    return user
     
 @inject
 async def seed_quotes(data, db = Depends(get_db)):
@@ -277,9 +278,12 @@ async def enable(interaction, taskname: str, admin = Depends(require_admin)):
 
 bot.tree.add_command(task_group, guild=guild)
 
-#basic commands-----------------------------------------------------------------------------------------------------
+#admin commands-----------------------------------------------------------------------------------------------------
+
+adming_group = app_commands.Group(name="admin", description="Commands for Admins only")
 
 @bot.command()
+@inject
 async def sync(ctx):
     """syncs commands"""
     if ctx.author.id != ADMIN:
@@ -287,14 +291,68 @@ async def sync(ctx):
         return
     await bot.tree.sync(guild=guild)
 
-@bot.tree.command(guild=guild)
+@adming_group.command()
 @inject
-async def test(interaction, db = Depends(get_db)):
+async def test(interaction, db = Depends(get_db), admin = Depends(require_admin)):
     task = db.execute(
         select(Task)
         .where(Task.id == 1)
     ).scalar_one_or_none()
-    await interaction.response.send_message(f"Task with id=1: {task.name}")
+    await interaction.response.send_message(f"Task with id=1: {task.name}", ephemeral=True)
+    await dispatch_event(name="command", command="test", ctx=Context(bot=bot, user=admin, db=db))
+    db.commit()
+
+@adming_group.command()
+@inject
+async def whosagoodboy(interaction, goodboy: discord.User, money: int, db = Depends(get_db), admin = Depends(require_admin)):
+    """You are yes you are :3"""
+    try:
+        user = db.execute(
+            select(User)
+            .where(User.id == goodboy.id)
+        ).scalar_one_or_none()
+        user.sunlight += money
+        db.commit()
+        await interaction.response.send_message(f"Ahh, {user.username}… truly, you are a good boy indeed! Rare is the soul who shines with such brilliance. Take this reward of {money:,} Sunlight — a symbol of my esteem. May it guide you ever closer to your own sun!")
+    except:
+        await interaction.response.send_message("Would result in negative sunlight cancelling", ephemeral=True)
+
+@adming_group.command()
+@app_commands.describe(bday="mm/dd")
+@inject
+async def registerbday(interaction, member: discord.User, bday: str, db = Depends(get_db), admin = Depends(require_admin)):
+    """Register a user's birthday mm/dd"""
+    dbuser = db.execute(
+        select(User).where(User.id == member.id)
+    ).scalar_one_or_none()
+    if not dbuser:
+        await interaction.response.send_message(f"User: {member} not found.", ephemeral=True)
+        return
+    try:
+        datetime.strptime(bday, "%m/%d")
+    except ValueError:
+        await interaction.response.send_message(f"Invalid date {bday}.", ephemeral=True)
+        return
+    dbuser.birthday = bday
+    dbuser.wimgurl = get_random_waifu_url()
+    db.commit()
+    await interaction.response.send_message(f"Birthday set to {bday}.", ephemeral=True)
+
+@adming_group.command()
+@inject
+async def testquest(interaction, db = Depends(get_db), admin = Depends(require_admin)):
+    """Assigns the quest Test to admin"""
+    userquest = UserQuest(
+        questid=1,
+        user=admin
+    )
+    db.add(userquest)
+    db.commit()
+    await interaction.response.send_message("assigned quest to admin", ephemeral=True)
+
+bot.tree.add_command(adming_group, guild=guild)
+
+#basic commands-----------------------------------------------------------------------------------------------------
 
 @bot.tree.command(guild=guild)
 async def flip(interaction, private: bool = False):
@@ -353,21 +411,6 @@ async def balance(interaction, user = Depends(get_current_user)):
 
 @bot.tree.command(guild=guild)
 @inject
-async def whosagoodboy(interaction, goodboy: discord.User, money: int, db = Depends(get_db), admin = Depends(require_admin)):
-    """You are yes you are :3"""
-    try:
-        user = db.execute(
-            select(User)
-            .where(User.id == goodboy.id)
-        ).scalar_one_or_none()
-        user.sunlight += money
-        db.commit()
-        await interaction.response.send_message(f"Ahh, {goodboy}… truly, you are a good boy indeed! Rare is the soul who shines with such brilliance. Take this reward of {money:,} Sunlight — a symbol of my esteem. May it guide you ever closer to your own sun!")
-    except:
-        await interaction.response.send_message("Would result in negative sunlight cancelling", ephemeral=True)
-
-@bot.tree.command(guild=guild)
-@inject
 async def quote(interaction, author: discord.User = None, private: bool = True, db = Depends(get_db)):
     """Shows a random quote"""
     if author:
@@ -388,6 +431,21 @@ async def create_quote(interaction: discord.Interaction, message: discord.Messag
     db.add(newquote)
     db.commit()
     await interaction.response.send_message(f"Ahh, dear adventurer! '{newquote.content}'? A most radiant notion, spoken by a wise sage of another age! Truly, even in our darkest hours, the sun yet burns above! Never forget—there is glory in perseverance, and splendor in struggle. Praise the Sun! 🌞")
+
+@bot.tree.command(guild=guild)
+@app_commands.describe(bday="mm/dd")
+@inject
+async def registerbday(interaction, bday: str, db = Depends(get_db), user = Depends(get_current_user)):
+    """Register your birthday mm/dd"""
+    try:
+        datetime.strptime(bday, "%m/%d")
+    except ValueError:
+        await interaction.response.send_message(f"Invalid date {bday}.", ephemeral=True)
+        return
+    user.birthday = bday
+    user.wimgurl = get_random_waifu_url()
+    db.commit()
+    await interaction.response.send_message(f"Birthday set to {bday}.", ephemeral=True)
 
 #Running------------------------------------------------------------------------------------------------------------
 

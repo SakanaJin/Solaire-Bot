@@ -14,6 +14,7 @@ class Item(Base):
     equipable = Column(Boolean, default=False)
     nonbattleonly = Column(Boolean, default=True)
     useable = Column(Boolean, default=True)
+    isfish = Column(Boolean, default=False)
 
     user_links = relationship("UserItem", back_populates="item")
 
@@ -21,7 +22,7 @@ class Item(Base):
 
     shop = relationship("ShopItem", back_populates="item", uselist=False, cascade="all, delete-orphan")
 
-    quests = relationship("Quest", back_populates="items", secondary="questsitems")
+    quest_links = relationship("QuestItem", back_populates="item")
 
     banners = relationship("Banner", back_populates="items", secondary="bannersitems")
 

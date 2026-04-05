@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Enum, CheckConstraint
+from sqlalchemy import Column, Integer, String, Text, Enum, CheckConstraint, Boolean
 from sqlalchemy.orm import relationship
 from enum import Enum as enoom
 
@@ -15,9 +15,10 @@ class Effect(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(256), nullable=False, unique=True)
     description = Column(Text, nullable=False)
-    Etype = Column(Enum(EffectType), nullable=False, default=EffectType.USER)
+    etype = Column(Enum(EffectType), nullable=False, default=EffectType.USER)
     value = Column(Integer, default=0)
     expiresin = Column(Integer, default=0)
+    ispercent = Column(Boolean, default=True)
 
     user_links = relationship("EffectUser", back_populates="effect")
 

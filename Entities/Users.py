@@ -1,9 +1,12 @@
+import discord
+
 from sqlalchemy import Column, Integer, String, Enum, BigInteger, CheckConstraint
 from sqlalchemy.orm import relationship
 
 from database import Base
 from Utils.Waifu import get_random_waifu_url
 from Utils.Roles import Roles
+from Utils.EventDispatcher import dispatch_event
 
 class User(Base):
     __tablename__ = "users"
@@ -29,8 +32,8 @@ class User(Base):
 
     battle_link = relationship("BattleParticipant", back_populates="user")
 
-    stocks = relationship("Stock", back_populates="owner")
-    stock_portfolio = relationship("UserStock", back_populates="user")
+    stocks = relationship("Stock", back_populates="owner") #stocks user created
+    stock_portfolio = relationship("UserStock", back_populates="user") #stocks user bought
 
     mons = relationship("UserMon", back_populates="trainer")
 
@@ -45,3 +48,4 @@ class User(Base):
 
     def calc_nextlvl(self):
         self.nextlvl = int((4 * self.lvl**3) // 5)
+    
