@@ -34,6 +34,7 @@ from Entities.Items import Item
 from Entities.UsersItems import UserItem
 from Entities.ItemsEffects import ItemEffect
 from Entities.Stocks import Stock
+from Entities.StocksHistories import StockHistory
 from Entities.UsersStocks import UserStock
 from Entities.EffectsStocks import EffectStock
 from Entities.Skills import Skill
@@ -166,6 +167,7 @@ async def on_ready(db = Depends(get_db)):
         newuser = User(
             id=user.id,
             username=user.display_name,
+            name=user.name,
             role=Roles.USER if int(user.id) != ADMIN else Roles.ADMIN
         )
         db.add(newuser)
@@ -181,6 +183,7 @@ async def on_member_update(before, after, db = Depends(get_db)):
             select(User).where(User.id == after.id)
         ).scalar_one_or_none()
         user.username = after.nick
+        user.name = after.name
         db.commit()
 
 @bot.event
@@ -189,6 +192,7 @@ async def on_member_join(member, db = Depends(get_db)):
     newuser = User(
         id=member.id,
         username=member.nick,
+        name=member.name,
         role=Roles.User if int(member.id) != ADMIN else Roles.ADMIN
     )
     db.add(newuser)
@@ -200,6 +204,33 @@ async def on_member_join(member, db = Depends(get_db)):
 @TaskManager.register("test", time=time(hour=15, minute=0))
 async def test():
     print("yamomma")
+
+@TaskManager.register("check_effects", hours=1)
+@inject
+async def check_effects(db = Depends(get_db)):
+    now = datetime.now()
+    usereffects = db.scalars(
+        select(EffectUser)
+        .where(EffectUser.expiresat < now)
+    ).all()
+    for usereffect in usereffects:
+        dispatch_event("effect_expire", ctx=Context(bot=bot, db=db, user=usereffect.user), effect_link=usereffect)
+        db.delete(usereffect)
+    stockeffects = db.scalars(
+        select(EffectStock)
+        .where(EffectStock.expiresat < now)
+    ).all()
+    for stockeffect in stockeffects:
+        dispatch_event("effect_expire", ctx=Context(bot=bot, db=db, user=stockeffect.stock.owner), effect_link=stockeffect)
+        db.delete(stockeffect)
+    businesseffects = db.scalars(
+        select(EffectBusiness)
+        .where(EffectBusiness.expiresat < now)
+    )
+    for businesseffect in businesseffects:
+        dispatch_event("effect_expire", ctx=Context(bot=bot, db=db, user=businesseffect.business.user), effect_link=businesseffect)
+        db.delete(businesseffect)
+    db.commit()
 
 task_group = app_commands.Group(name="task", description="commands for tasks (admin only)")
 
@@ -238,7 +269,7 @@ async def tasks(interaction: discord.Interaction):
             value=meat,
             inline=False
         )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @task_group.command()
 @app_commands.autocomplete(taskname=taskname_autocomplete)

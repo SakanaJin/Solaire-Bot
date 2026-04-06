@@ -41,25 +41,21 @@ async def handle_quest_complete(*, ctx, quest, **kwargs):
     embed.add_field(name="Monuments:", value="\n".join(monument_strings), inline=False)
     await senddm(ctx=ctx, content="Quest Completed", embed=embed)
 
-@register_event("effect_user")
-async def handle_effect_user(*, ctx, effectuser, **kwargs):
+@register_event("gain_effect")
+async def handle_gain_effect(*, ctx, effect_link, **kwargs):
     embed = Embed(
-        title=effectuser.effect.name,
+        title=effect_link.effect.name,
         color=random.randint(0, 255)
     )
     timestamp = None
-    if effectuser.expiresat != 0:
-        timestamp = int(effectuser.expiresat.timestamp())
-    embed.description = effectuser.effect.description
+    if effect_link.expiresat != 0:
+        timestamp = int(effect_link.expiresat.timestamp())
+    embed.description = effect_link.effect.description
     embed.footer = f"Expires: <t:{timestamp}:R> (<t:{timestamp}:t>)"
-    await senddm(ctx=ctx, content="You now have the effect:", embed=embed)
+    await senddm(ctx=ctx, content="Gained Effect", embed=embed)
 
-@register_event("effect_business")
-async def handle_effect_business(*, ctx, effectbusiness, **kwargs):
-    pass
-
-@register_event("effect_stock")
-async def handle_effect_stock(*, ctx, effectstock, **kwargs):
+@register_event("effect_expire")
+async def handle_effect_expire(*, ctx, effect_link, **kwargs):
     pass
 
 @register_event("get_monument")

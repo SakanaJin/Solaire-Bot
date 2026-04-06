@@ -18,6 +18,8 @@ class Stock(Base):
 
     effect_links = relationship("EffectStock", back_populates="stock")
 
+    history = relationship("StockHistory", back_populates="stock")
+
     __table_args__ = (
         CheckConstraint("price > 0", name="check_price_gtzero"),
     )

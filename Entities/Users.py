@@ -12,6 +12,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(BigInteger, primary_key=True)
     username = Column(String(50), nullable=False)
+    name = Column(String(50), nullable=False, unique=True)
     role = Column(Enum(Roles), default=Roles.USER, nullable=False)
     sunlight = Column(Integer, default=100, nullable=False)
     lvl = Column(Integer, default=1)

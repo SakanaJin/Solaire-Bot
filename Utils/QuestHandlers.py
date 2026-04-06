@@ -53,7 +53,7 @@ async def complete_quest(userquest: UserQuest, quest: Quest, ctx):
                     expiresat=round_nearest_hour(datetime.now() + timedelta(hours=effect.expiresin))
                 )
                 db.add(effectuser)
-                await dispatch_event("effect_user", ctx=ctx, effectsuser=effectuser)
+                await dispatch_event("gain_effect", ctx=ctx, effect_link=effectuser)
             case EffectType.STOCK:
                 for stock in user.stocks:
                     effectstock = EffectStock(
@@ -62,7 +62,7 @@ async def complete_quest(userquest: UserQuest, quest: Quest, ctx):
                         expiresat=round_nearest_hour(datetime.now() + timedelta(hours=effect.expiresin))
                     )
                     db.add(effectstock)
-                    await dispatch_event("effect_stock", ctx=ctx, effectstock=effectstock)
+                    await dispatch_event("gain_effect", ctx=ctx, effect_link=effectstock)
             case EffectType.BUISINESS:
                 for business in user.businesses:
                     effectbusiness = EffectBusiness(
@@ -71,7 +71,7 @@ async def complete_quest(userquest: UserQuest, quest: Quest, ctx):
                         expiresat=round_nearest_hour(datetime.now() + timedelta(hours=effect.expiresin))
                     )
                     db.add(effectbusiness)
-                    await dispatch_event("effect_business", ctx=ctx, effectbusiness=effectbusiness)
+                    await dispatch_event("gain_effect", ctx=ctx, effect_link=effectbusiness)
     await dispatch_event("quest_complete", ctx=ctx, quest=quest)
     db.delete(userquest)
 
