@@ -18,13 +18,15 @@ class Item(Base):
 
     user_links = relationship("UserItem", back_populates="item")
 
+    area_links = relationship("AreaFish", back_populates="fish")
+
     effects = relationship("Effect", back_populates="items", secondary="itemseffects")
 
     shop = relationship("ShopItem", back_populates="item", uselist=False, cascade="all, delete-orphan")
 
     quest_links = relationship("QuestItem", back_populates="item")
 
-    banners = relationship("Banner", back_populates="items", secondary="bannersitems")
+    banner_links = relationship("BannerItem", back_populates="item")
 
     __table_args__ = (
         CheckConstraint("value >= 0", name="check_value_positive"),

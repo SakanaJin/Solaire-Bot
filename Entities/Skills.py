@@ -20,6 +20,8 @@ class Skill(Base):
 
     usermons = relationship("UserMon", back_populates="skills", secondary="usersmonsskills")
 
+    banner_links = relationship("BannerSkill", back_populates="skill")
+
     __table_args__ = (
         CheckConstraint("basedmg > 0", name="check_basedmg_gtzero"),
     )

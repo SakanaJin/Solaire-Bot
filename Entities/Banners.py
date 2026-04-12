@@ -11,8 +11,12 @@ class Banner(Base):
     description = Column(Text, nullable=False)
     rarity = Column(Enum(Rarities), default=Rarities.COMMON)
 
-    mons = relationship("Mon", back_populates="banners", secondary="bannersmons")
+    mon_links = relationship("BannerMon", back_populates="banner")
 
-    items = relationship("Item", back_populates="banners", secondary="bannersitems")
+    item_links = relationship("BannerItem", back_populates="banner")
+
+    yakuza_links = relationship("BannerYakuza", back_populates="banner")
+
+    skill_links = relationship("BannerSkill", back_populates="banner")
 
     quests = relationship("Quest", back_populates="banners", secondary="bannersquests")

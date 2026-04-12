@@ -75,6 +75,9 @@ from Entities.Businesses import Business
 from Entities.AreaBusinesses import AreaBusiness
 from Entities.EffectsBusinesses import EffectBusiness
 from Entities.UserBusinesses import UserBusiness
+from Entities.AreasFish import AreaFish
+from Entities.BannersYakuza import BannerYakuza
+from Entities.BannersSkills import BannerSkill
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')

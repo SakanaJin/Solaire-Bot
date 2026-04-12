@@ -15,3 +15,5 @@ class Area(Base):
     businesses = relationship("Business", back_populates="areas", secondary="areasbusinesses")
 
     families = relationship("Family", back_populates="area")
+
+    fish_links = relationship("AreaFish", back_populates="area")

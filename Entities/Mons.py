@@ -27,4 +27,4 @@ class Mon(Base):
 
     quests = relationship("Quest", back_populates="mons", secondary="questsmons")
 
-    banners = relationship("Banner", back_populates="mons", secondary="bannersmons")
+    banner_links = relationship("BannerMon", back_populates="mon")

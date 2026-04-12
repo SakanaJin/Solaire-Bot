@@ -8,3 +8,10 @@ class Rarities(Enum):
     INCANDESCENT = 0xfcb632
     KEYITEM = 0x068067
     MONUMENT = 0xfcf914
+
+class Weights(Enum):
+    COMMON = 1000
+    UNCOMMON = 400
+    RARE = 100
+    LEGENDARY = 25
+    INCANDESCENT = 5
