@@ -5,14 +5,16 @@ from enum import Enum
 WAIFUAPIURL = "https://api.waifu.im/images"
 
 SFWWEIGHT = 0.95
-NSFWWEIGHT = 0.05
+ECCHIWEIGHT = 0.025
+HENTAIWEIGHT = 0.025
 
 WAIFUWEIGHT = 0.95
 NEKOWEIGHT = 0.05
 
 class WaifuType(str, Enum):
     SFW = "sfw"
-    NSFW = "nsfw"
+    ECCHI = 'ecchi'
+    HENTAI = "hentai"
 
 class WaifuCat(str, Enum):
     WAIFU = "waifu"
@@ -21,7 +23,7 @@ class WaifuCat(str, Enum):
 def get_random_waifu_url() -> str:
     wtype = random.choices(
         list(WaifuType),
-        weights=[SFWWEIGHT, NSFWWEIGHT],
+        weights=[SFWWEIGHT, ECCHIWEIGHT, HENTAIWEIGHT],
         k=1
     )[0].value
     category = random.choices(
@@ -29,6 +31,6 @@ def get_random_waifu_url() -> str:
         weights=[WAIFUWEIGHT, NEKOWEIGHT],
         k=1
     )[0].value
-    response = requests.get(WAIFUAPIURL + f"?IsNsfw={wtype == WaifuType.NSFW}&IncludedTags={category}")
+    response = requests.get(WAIFUAPIURL + f"?IsNsfw={wtype != WaifuType.SFW}{f'&IncludedTags={wtype}' if wtype == WaifuType.ECCHI or wtype == WaifuType.HENTAI else ""}&IncludedTags={category}")
     imgurl = response.json()["items"][0]['url']
     return imgurl

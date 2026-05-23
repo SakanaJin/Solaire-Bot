@@ -422,10 +422,8 @@ async def waifutype_autocomplete(interaction, current):
 @app_commands.autocomplete(type=waifutype_autocomplete)
 async def waifu(interaction, type: str = WaifuType.SFW.value, category: str = "waifu", private: bool = True):
     """Throws a waifu"""
-    if type == "n":
-        type = WaifuType.NSFW.value
-    response = requests.get(WAIFUAPIURL + f"/{type}/{category}")
-    imgurl = response.json()['url']
+    response = requests.get(WAIFUAPIURL + f"?IsNsfw={type!=WaifuType.SFW}{f'&IncludedTags={type}' if type == WaifuType.ECCHI or type == WaifuType.HENTAI else ""}&IncludedTags={category}")
+    imgurl = response.json()["items"][0]['url']
     await interaction.response.send_message(imgurl, ephemeral=private)
 
 @bot.tree.command(guild=guild)
