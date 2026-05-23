@@ -2,7 +2,7 @@ import requests
 import random
 from enum import Enum
 
-WAIFUAPIURL = "https://api.waifu.pics"
+WAIFUAPIURL = "https://api.waifu.im/images"
 
 SFWWEIGHT = 0.95
 NSFWWEIGHT = 0.05
@@ -29,6 +29,6 @@ def get_random_waifu_url() -> str:
         weights=[WAIFUWEIGHT, NEKOWEIGHT],
         k=1
     )[0].value
-    response = requests.get(WAIFUAPIURL + f"/{wtype}/{category}")
-    imgurl = response.json()['url']
+    response = requests.get(WAIFUAPIURL + f"?IsNsfw={wtype == WaifuType.NSFW}&IncludedTags={category}")
+    imgurl = response.json()["items"][0]['url']
     return imgurl
