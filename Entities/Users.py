@@ -18,7 +18,7 @@ class User(Base):
     lvl = Column(Integer, default=1)
     nextlvl = Column(Integer, default=1)
     birthday = Column(String(5), default="01/01")
-    wimgurl = Column(String(512), default=get_random_waifu_url())
+    wimgurl = Column(String(512), default=lambda: get_random_waifu_url())
     msgcount = Column(Integer, default=0)
 
     quotes = relationship("Quote", back_populates="author")
