@@ -95,19 +95,9 @@ cython_debug/
 .env
 .venv
 
-# Json data files
-data.json
-quotes.json
-user-stocks.json
-user-inventories.json
-shop.json
-user-mons.json
-battles.json
-user-skills.json
-gaol.json
-dungeon.json
-user-monuments.json
-stocksdata.json
+#database files
+*.db
+Solaire.db
 
 # png files
 *.png
@@ -118,3 +108,4 @@ guitest.py
 
 #backup folder
 backup/
+*.db

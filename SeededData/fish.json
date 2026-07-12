@@ -1,0 +1,11 @@
+{
+  "fish": [
+    {
+      "key": "common_carp",
+      "name": "Common Carp",
+      "rarity": "common",
+      "base_value": 10,
+      "description": "This is a test carp"
+    }
+  ]
+}
