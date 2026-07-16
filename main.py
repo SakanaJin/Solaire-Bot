@@ -420,11 +420,14 @@ async def waifutype_autocomplete(interaction, current):
 
 @bot.tree.command(guild=guild)
 @app_commands.autocomplete(type=waifutype_autocomplete)
-async def waifu(interaction, type: str = WaifuType.SFW.value, category: str = "waifu", private: bool = True):
+async def waifu(interaction, type: str = WaifuType.SFW.value, category: str = "", private: bool = True, amount: int = 1):
     """Throws a waifu"""
-    response = requests.get(WAIFUAPIURL + f"?IsNsfw={type!=WaifuType.SFW}{f'&IncludedTags={type}' if type == WaifuType.ECCHI or type == WaifuType.HENTAI else ""}&IncludedTags={category}")
-    imgurl = response.json()["items"][0]['url']
-    await interaction.response.send_message(imgurl, ephemeral=private)
+    if amount < 1 or amount > 5:
+        await interaction.response.send_message("invalid amount", ephemeral=True)
+    response = requests.get(WAIFUAPIURL + f"?IsNsfw={type!=WaifuType.SFW}{f'&IncludedTags={type}' if type == WaifuType.ECCHI or type == WaifuType.HENTAI else ""}&PageSize={amount}{f'&IncludedTags={category}' if category is not "" else ""}")
+    img_slice = response.json()["items"][0:int(amount)]
+    imgurls = [img['url'] for img in img_slice]
+    await interaction.response.send_message("\n".join(imgurls), ephemeral=private)
 
 @bot.tree.command(guild=guild)
 async def traumatize(interaction):

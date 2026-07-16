@@ -16,9 +16,9 @@ class WaifuType(str, Enum):
     ECCHI = 'ecchi'
     HENTAI = "hentai"
 
-class WaifuCat(str, Enum):
-    WAIFU = "waifu"
-    NEKO = "neko"
+# class WaifuCat(str, Enum):
+#     WAIFU = "waifu"
+#     NEKO = "neko"
 
 def get_random_waifu_url() -> str:
     wtype = random.choices(
@@ -26,11 +26,12 @@ def get_random_waifu_url() -> str:
         weights=[SFWWEIGHT, ECCHIWEIGHT, HENTAIWEIGHT],
         k=1
     )[0].value
-    category = random.choices(
-        list(WaifuCat),
-        weights=[WAIFUWEIGHT, NEKOWEIGHT],
-        k=1
-    )[0].value
-    response = requests.get(WAIFUAPIURL + f"?IsNsfw={wtype != WaifuType.SFW}{f'&IncludedTags={wtype}' if wtype == WaifuType.ECCHI or wtype == WaifuType.HENTAI else ""}&IncludedTags={category}")
+    # category = random.choices(
+    #     list(WaifuCat),
+    #     weights=[WAIFUWEIGHT, NEKOWEIGHT],
+    #     k=1
+    # )[0].value
+    category = "waifu"
+    response = requests.get(WAIFUAPIURL + f"?IsNsfw={wtype != WaifuType.SFW}{f'&IncludedTags={wtype}' if wtype == WaifuType.ECCHI or wtype == WaifuType.HENTAI else ""}")
     imgurl = response.json()["items"][0]['url']
     return imgurl
